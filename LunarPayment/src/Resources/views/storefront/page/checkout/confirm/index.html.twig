@@ -51,8 +51,8 @@
                     handleTosCheckbox(event.target.checked);
                 });
 
-                jQuery('#confirmOrderForm > button[type=submit]').on('click', function(event) {
-                    event.preventDefault();
+                jQuery('#confirmOrderForm button[type=submit]').on('click', function(e) {
+                    e.preventDefault();
 
                     const lunarData = {{ page.lunar | json_encode|raw }};
 

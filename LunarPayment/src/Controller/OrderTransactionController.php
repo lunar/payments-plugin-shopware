@@ -18,7 +18,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 
-use Lunar\Payment\lib\ApiClient;
+use Paylike\Paylike as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\CurrencyHelper;
@@ -27,7 +27,7 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
 /**
  * Responsible for handling order payment transactions
  *
- * @RouteScope(scopes={"api"})
+ * @Route=(defaults={"_routeScope"={"administration"}})
  */
 class OrderTransactionController extends AbstractController
 {

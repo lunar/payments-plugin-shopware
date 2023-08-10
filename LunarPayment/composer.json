@@ -11,9 +11,10 @@
         }
     ],
     "require": {
-        "shopware/core": "6.4.*",
-        "shopware/administration": "6.4.*",
-        "shopware/storefront": "6.4.*"
+        "shopware/core": "^6.4 | ^6.5",
+        "shopware/administration": "^6.4 | ^6.5",
+        "shopware/storefront": "^6.4 | ^6.5",
+        "paylike/php-api": "^2.0"
     },
     "extra": {
         "shopware-plugin-class": "Lunar\\Payment\\LunarPayment",
