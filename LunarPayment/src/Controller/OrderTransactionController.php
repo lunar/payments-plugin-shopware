@@ -9,7 +9,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -27,7 +26,7 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
 /**
  * Responsible for handling order payment transactions
  *
- * @Route=(defaults={"_routeScope"={"administration"}})
+ * @Route(defaults={"_routeScope"={"administration"}})
  */
 class OrderTransactionController extends AbstractController
 {
@@ -143,7 +142,7 @@ class OrderTransactionController extends AbstractController
         $actionType = ucfirst($actionType);
         $actionTypeAllCaps = strtoupper($actionType);
 
-        $params = $request->request->get('params');
+        $params = $request->request->all()['params'];
         $orderId = $params['orderId'];
         $lunarTransactionId = $params['lunarTransactionId'];
 
@@ -305,7 +304,7 @@ class OrderTransactionController extends AbstractController
     public function fetchTransactions(Request $request, Context $context): JsonResponse
     {
         $errors = [];
-        $orderId = $request->request->get('params')['orderId'];
+        $orderId = $request->request->all()['params']['orderId'];
 
         try {
             /**

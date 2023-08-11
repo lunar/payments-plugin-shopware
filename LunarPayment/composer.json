@@ -1,7 +1,7 @@
 {
     "name": "lunar/plugin-shopware-6",
     "description": "Secure payment with credit card via Lunar",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
@@ -19,8 +19,8 @@
     "extra": {
         "shopware-plugin-class": "Lunar\\Payment\\LunarPayment",
         "label": {
-            "de-DE": "Cards - Lunar",
-            "en-GB": "Cards - Lunar"
+            "de-DE": "Card",
+            "en-GB": "Card"
         },
         "description": {
             "de-DE": "Secure payment with credit card via Lunar",

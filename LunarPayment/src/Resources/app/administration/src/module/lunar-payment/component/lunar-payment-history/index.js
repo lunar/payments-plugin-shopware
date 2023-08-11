@@ -37,38 +37,39 @@ Component.register('lunar-payment-history', {
             const data = [];
             const lunarTransactions = self.lunarTransactions[0];
 
-            if (lunarTransactions) {
-
-                let index = 1;
-
-                Object.entries(lunarTransactions).forEach(([key, lunarTransaction]) => {
-
-                    /** Get last transaction id. */
-                    let arrayKeys = Object.keys(lunarTransactions);
-                    let lastKey = arrayKeys[arrayKeys.length - 1];
-                    const lastTransactionId = lunarTransactions[lastKey].id;
-
-                    /** Set last transaction details to be available into actions component. */
-                    if (key == lastTransactionId) {
-                        self.lastTransactionType = lunarTransaction.transactionType;
-                        self.amountInMinor = lunarTransaction.amountInMinor;
-                        self.lunarTransactionId = lunarTransaction.transactionId;
-                        self.transactionCurrency = lunarTransaction.transactionCurrency;
-                    }
-
-                    let createdAt = lunarTransaction.createdAt.split(/[T.]/);
-
-                    data.push({
-                        id: index++,
-                        type: lunarTransaction.transactionType,
-                        transactionId: lunarTransaction.transactionId,
-                        currencyCode: lunarTransaction.transactionCurrency,
-                        orderAmount: lunarTransaction.orderAmount,
-                        transactionAmount: lunarTransaction.transactionAmount,
-                        date: createdAt[0] + ' ' + createdAt[1]
-                    });
-                });
+            if (_.isEmpty(lunarTransactions)) {
+                return data;
             }
+
+            let index = 1;
+
+            Object.entries(lunarTransactions).forEach(([key, lunarTransaction]) => {
+
+                /** Get last transaction id. */
+                let arrayKeys = Object.keys(lunarTransactions);
+                let lastKey = arrayKeys[arrayKeys.length - 1];
+                const lastTransactionId = lunarTransactions[lastKey].id;
+
+                /** Set last transaction details to be available into actions component. */
+                if (key == lastTransactionId) {
+                    self.lastTransactionType = lunarTransaction.transactionType;
+                    self.amountInMinor = lunarTransaction.amountInMinor;
+                    self.lunarTransactionId = lunarTransaction.transactionId;
+                    self.transactionCurrency = lunarTransaction.transactionCurrency;
+                }
+
+                let createdAt = lunarTransaction.createdAt.split(/[T.]/);
+
+                data.push({
+                    id: index++,
+                    type: lunarTransaction.transactionType,
+                    transactionId: lunarTransaction.transactionId,
+                    currencyCode: lunarTransaction.transactionCurrency,
+                    orderAmount: lunarTransaction.orderAmount,
+                    transactionAmount: lunarTransaction.transactionAmount,
+                    date: createdAt[0] + ' ' + createdAt[1]
+                });
+            });
 
             return data;
         },

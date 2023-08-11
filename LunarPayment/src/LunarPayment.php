@@ -65,7 +65,7 @@ class LunarPayment extends Plugin
         /** Defaults for multi-select field "acceptedCards". */
         $config = $this->container->get(SystemConfigService::class);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'acceptedCards', PluginHelper::ACCEPTED_CARDS);
-        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'transactionMode', PluginHelper::TRANSACTION_MODE);
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'transactionMode', PluginHelper::TRANSACTIOIN_MODE);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'captureMode', PluginHelper::CAPTURE_MODE);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'shopTitle', $config->get('core.basicInformation.shopName'));
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'description', PluginHelper::PAYMENT_METHOD_DESCRIPTION);
@@ -132,7 +132,7 @@ class LunarPayment extends Plugin
             'handlerIdentifier' => LunarPaymentHandler::class,
             'pluginId' => $pluginId,
             'afterOrderEnabled' => false, // disable by default after order actions
-            'name' => $paymentMethodName,
+            'name' => PluginHelper::PAYMENT_METHOD_ADMIN_NAME,
             'description' => $paymentMethodDescription,
         ];
 

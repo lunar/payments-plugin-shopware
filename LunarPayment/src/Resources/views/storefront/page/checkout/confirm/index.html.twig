@@ -37,22 +37,18 @@
             jQuery(document).ready(function () {
                 // disable button in case of an error
                 {% if isAuthorizationError || isCaptureError %}
-                    jQuery('#confirmOrderForm > button[type=submit]').attr('disabled', true);
+                    jQuery('#confirmOrderForm button[type=submit]').attr('disabled', true);
                 {% endif %}
-
-                /**
-                 * Prevent submit if TOS not accepted
-                 * (this also prevents double payment because the "tos must be accepted" error
-                 * is shown after payment with this plugin)
-                 */
-                handleTosCheckbox(jQuery('#tos').prop('checked'));
-
-                jQuery('#tos').on('change', function(event) {
-                    handleTosCheckbox(event.target.checked);
-                });
 
                 jQuery('#confirmOrderForm button[type=submit]').on('click', function(e) {
                     e.preventDefault();
+
+                    // verify if the form can be submitted
+                    let form = document.getElementById('confirmOrderForm');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
 
                     const lunarData = {{ page.lunar | json_encode|raw }};
 
@@ -98,16 +94,6 @@
                 });
             });
 
-            /**
-             *
-             */
-            function handleTosCheckbox(checkboxState) {
-                if (checkboxState !== true) {
-                    jQuery('#confirmOrderForm > button[type=submit]').attr('disabled', true);
-                } else {
-                    jQuery('#confirmOrderForm > button[type=submit]').removeAttr('disabled');
-                }
-            }
         </script>
 
         <input type="hidden" form="confirmOrderForm" id="lunar_transaction_id" name="lunar_transaction_id">
