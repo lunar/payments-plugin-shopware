@@ -79,6 +79,7 @@ class LunarPayment extends Plugin
         $this->setPaymentMethodIsActive(false, $context->getContext());
 
         parent:: uninstall($context);
+
         if ($context->keepUserData()) {
             return;
         }
@@ -132,12 +133,13 @@ class LunarPayment extends Plugin
             'handlerIdentifier' => LunarPaymentHandler::class,
             'pluginId' => $pluginId,
             'afterOrderEnabled' => false, // disable by default after order actions
-            'name' => PluginHelper::PAYMENT_METHOD_ADMIN_NAME,
+            'name' => $paymentMethodName,
             'description' => $paymentMethodDescription,
         ];
 
         /** @var EntityRepository $paymentRepository */
         $paymentRepository = $this->container->get('payment_method.repository');
+        /** @var EntityRepository $translationRepository */
         $translationRepository = $this->container->get('payment_method_translation.repository');
 
         $paymentRepository->upsert([$paymentMethodData], $context);

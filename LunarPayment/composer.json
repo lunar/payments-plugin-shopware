@@ -19,8 +19,8 @@
     "extra": {
         "shopware-plugin-class": "Lunar\\Payment\\LunarPayment",
         "label": {
-            "de-DE": "Card",
-            "en-GB": "Card"
+            "de-DE": "Lunar Payment",
+            "en-GB": "Lunar Payment"
         },
         "description": {
             "de-DE": "Secure payment with credit card via Lunar",

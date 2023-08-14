@@ -11,9 +11,7 @@ class PluginHelper
 
     public const VENDOR_NAME = 'lunar';
 
-    public const PLUGIN_NAME = 'LunarPayment';
-
-    public const PAYMENT_METHOD_ADMIN_NAME = 'Lunar Payment';
+    public const PLUGIN_CODE = 'LunarPayment';
     public const PAYMENT_METHOD_NAME = 'Card';
 
     public const TRANSACTION_MODE = 'live';
@@ -21,5 +19,5 @@ class PluginHelper
     public const PAYMENT_METHOD_DESCRIPTION = 'Secure payment with credit card via © Lunar';
     public const ACCEPTED_CARDS = ['visa', 'visaelectron', 'mastercard', 'maestro'];
 
-    public const PLUGIN_CONFIG_PATH = self::PLUGIN_NAME . '.settings.';
+    public const PLUGIN_CONFIG_PATH = self::PLUGIN_CODE . '.settings.';
 }
