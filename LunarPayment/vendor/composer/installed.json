@@ -1,0 +1,53 @@
+{
+    "packages": [
+        {
+            "name": "paylike/php-api",
+            "version": "2.0.0",
+            "version_normalized": "2.0.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/paylike/php-api.git",
+                "reference": "d388681400e5b9b53ef45f84c01a8e4ae6884664"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/paylike/php-api/zipball/d388681400e5b9b53ef45f84c01a8e4ae6884664",
+                "reference": "d388681400e5b9b53ef45f84c01a8e4ae6884664",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "php": ">=5.6.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.6.3"
+            },
+            "time": "2023-02-15T10:07:21+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Paylike\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ionut Calara",
+                    "email": "ionut.calara@gmail.com"
+                }
+            ],
+            "description": "PHP SDK to communicate with the Paylike HTTP API",
+            "support": {
+                "issues": "https://github.com/paylike/php-api/issues",
+                "source": "https://github.com/paylike/php-api/tree/v2.0.0"
+            },
+            "install-path": "../paylike/php-api"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}

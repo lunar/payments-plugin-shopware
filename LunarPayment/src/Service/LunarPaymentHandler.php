@@ -13,7 +13,7 @@ use Shopware\Core\Checkout\Payment\Exception\SyncPaymentProcessException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\SynchronousPaymentHandlerInterface;
 
-use Lunar\Payment\lib\ApiClient;
+use Paylike\Paylike as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\CurrencyHelper;

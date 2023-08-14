@@ -171,7 +171,7 @@ class CheckoutConfirmSubscriber implements EventSubscriberInterface
 
         $page->setPaymentMethods(
             $page->getPaymentMethods()->filter(static function (PaymentMethodEntity $paymentMethod) {
-                return mb_strpos($paymentMethod->getHandlerIdentifier(), PluginHelper::PLUGIN_NAME) === false;
+                return mb_strpos($paymentMethod->getHandlerIdentifier(), PluginHelper::PLUGIN_CODE) === false;
             })
         );
 
