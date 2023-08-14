@@ -16,7 +16,7 @@ class PluginHelper
     public const PAYMENT_METHOD_ADMIN_NAME = 'Lunar Payment';
     public const PAYMENT_METHOD_NAME = 'Card';
 
-    public const TRANSACTIOIN_MODE = 'test';
+    public const TRANSACTION_MODE = 'live';
     public const CAPTURE_MODE = 'delayed';
     public const PAYMENT_METHOD_DESCRIPTION = 'Secure payment with credit card via © Lunar';
     public const ACCEPTED_CARDS = ['visa', 'visaelectron', 'mastercard', 'maestro'];
