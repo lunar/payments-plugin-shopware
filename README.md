@@ -45,6 +45,14 @@ Under the Shopware Lunar payment method config (`/admin#/sw/extension/my-extensi
   * Activate/deactivate the plugin
   * Uninstall the plugin
 
+
+Under the Shopware Lunar payment method settings (`/admin#/lunar/payment/settings/index`), you can:
+  * Activate/deactivate the payment method from plugin
+  * Update the payment method name & description in the payment methods settings
+  * Update the title & description that shows up in the payment popup
+  * Add app & public keys
+  * Change the capture mode (Instant/Delayed by changing the order status)
+
 Under the Shopware Lunar payment method Shop settings (`/admin#/sw/settings/payment/detail/1a9bc76a3c244278a51a2e90c1e6f040`), you can:
   * Activate/deactivate plugin payment methods
   * Update frontend payment methods name
@@ -54,13 +62,6 @@ Under the Shopware Lunar payment method Shop settings (`/admin#/sw/settings/paym
   * Allow payment methods to be available when change payment method by customer (not available for the moment in this plugin)
   * Establish availability rule for payment methods
 
-Under the Shopware Lunar payment method settings (`/admin#/lunar/payment/settings/index`), you can:
-  * Activate/deactivate the payment method from plugin
-  * Update the payment method name & description in the payment methods settings
-  * Update the title & description that shows up in the payment popup
-  * Add public & app keys
-  * Change the capture mode (Instant/Delayed by changing the order status)
-
 #### NOTE: the plugin logs are enabled by default and cannot be changed (for the moment)
 
  ## How to
@@ -68,10 +69,13 @@ Under the Shopware Lunar payment method settings (`/admin#/lunar/payment/setting
   1. Capture
       * In Instant mode, the orders are captured automatically
       * In delayed mode you can press `Capture` button from Order details page, Lunar Payment tab.
+      * Also, the order can be Captured by changing the payment status from Authorized to Paid.
   2. Refund
       * To refund an order you can press `Refund` button from Order details page, Lunar Payment tab
+      * Also, the order can be Refunded by changing the payment status from Paid to Refunded.
   3. Void
       * To void an order you can press `Void (cancel)` button from Order details page, Lunar Payment tab
+      * Also, the order can be Voided (canceled) by changing the payment status from Authorised to Cancelled.
 
   ## Available features
 
@@ -84,3 +88,10 @@ Under the Shopware Lunar payment method settings (`/admin#/lunar/payment/setting
   3. Void
       * Shopware admin panel: full void
       * Lunar admin panel: full/partial void
+
+#
+## Changelog
+
+1.1.0 - compatibility with Shopware 6.5
+
+1.0.0 - initial version
