@@ -1,53 +1,51 @@
 {
     "packages": [
         {
-            "name": "paylike/php-api",
-            "version": "2.0.0",
-            "version_normalized": "2.0.0.0",
+            "name": "lunar/payments-api-sdk",
+            "version": "dev-initial-dev",
+            "version_normalized": "dev-initial-dev",
             "source": {
                 "type": "git",
-                "url": "https://github.com/paylike/php-api.git",
-                "reference": "d388681400e5b9b53ef45f84c01a8e4ae6884664"
+                "url": "https://github.com/lunar/payments-api-sdk.git",
+                "reference": "f9fa8411414e3ff3a3122588b97d5e398cb0b237"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/paylike/php-api/zipball/d388681400e5b9b53ef45f84c01a8e4ae6884664",
-                "reference": "d388681400e5b9b53ef45f84c01a8e4ae6884664",
+                "url": "https://api.github.com/repos/lunar/payments-api-sdk/zipball/f9fa8411414e3ff3a3122588b97d5e398cb0b237",
+                "reference": "f9fa8411414e3ff3a3122588b97d5e398cb0b237",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
-                "php": ">=5.6.0"
+                "php": ">=7.1"
             },
             "require-dev": {
                 "phpunit/phpunit": "^9.6.3"
             },
-            "time": "2023-02-15T10:07:21+00:00",
+            "time": "2023-05-17T10:31:33+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
                 "psr-4": {
-                    "Paylike\\": "src/"
+                    "Lunar\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Lunar\\Tests\\": "tests/"
+                }
+            },
             "license": [
                 "MIT"
             ],
-            "authors": [
-                {
-                    "name": "Ionut Calara",
-                    "email": "ionut.calara@gmail.com"
-                }
-            ],
-            "description": "PHP SDK to communicate with the Paylike HTTP API",
+            "description": "PHP SDK to communicate with the Lunar HTTP API",
             "support": {
-                "issues": "https://github.com/paylike/php-api/issues",
-                "source": "https://github.com/paylike/php-api/tree/v2.0.0"
+                "source": "https://github.com/lunar/payments-api-sdk/tree/initial-dev",
+                "issues": "https://github.com/lunar/payments-api-sdk/issues"
             },
-            "install-path": "../paylike/php-api"
+            "install-path": "../lunar/payments-api-sdk"
         }
     ],
-    "dev": true,
+    "dev": false,
     "dev-package-names": []
 }
