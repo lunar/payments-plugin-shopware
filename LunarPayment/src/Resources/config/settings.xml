@@ -62,11 +62,6 @@
             <name>shopTitle</name>
             <label>Shop title</label>
         </input-field>
-        <input-field>
-            <name>description</name>
-            <label>Popup description</label>
-            <helpText>The description that will shows up in checkout</helpText>
-        </input-field>
     </card>
 
     <card>

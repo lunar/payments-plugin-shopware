@@ -35,7 +35,7 @@ use Symfony\Component\Config\FileLocator;
 use Doctrine\DBAL\Connection;
 
 use Lunar\Payment\Helpers\PluginHelper;
-use Lunar\Payment\Service\LunarPaymentHandler;
+use Lunar\Payment\Service\LunarHostedCheckoutHandler;
 
 /**
  *
@@ -130,7 +130,7 @@ class LunarPayment extends Plugin
 
         $paymentMethodData = [
             'id' => $paymentMethodUuid,
-            'handlerIdentifier' => LunarPaymentHandler::class,
+            'handlerIdentifier' => LunarHostedCheckoutHandler::class,
             'pluginId' => $pluginId,
             'afterOrderEnabled' => false, // disable by default after order actions
             'name' => $paymentMethodName,

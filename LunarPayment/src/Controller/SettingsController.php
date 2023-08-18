@@ -10,8 +10,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-use Paylike\Paylike as ApiClient;
-use Paylike\Exception\ApiException;
+use Lunar\Lunar as ApiClient;
+use Lunar\Exception\ApiException;
 // use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\ValidationHelper;
 
@@ -37,40 +37,55 @@ class SettingsController extends AbstractController
     // }
 
     /**
+     * Temporary added - we don't validate the keys
+     * 
      * @Route("/api/lunar/validate-api-keys", name="api.lunar.validate.api.keys", methods={"POST"})
      */
     public function validateApiKeys(Request $request, Context $context): JsonResponse
     {
-        $liveAppKeyName = 'liveModeAppKey';
-        $livePublicKeyName = 'liveModePublicKey';
-        $testAppKeyName = 'testModeAppKey';
-        $testPublicKeyName = 'testModePublicKey';
-
-        $settingsKeys = $request->request->all()['keys'] ?? [];
-
-        // validate all fields regardless of transactionMode
-        $this->validateLiveAppKey($settingsKeys[$liveAppKeyName] ?? '');
-        $this->validateLivePublicKey($settingsKeys[$livePublicKeyName] ?? '');
-        $this->validateTestAppKey($settingsKeys[$testAppKeyName] ?? '');
-        $this->validateTestPublicKey($settingsKeys[$testPublicKeyName] ?? '');
-
-        if (!empty($this->errors)) {
-            return new JsonResponse([
-                'status'  => empty($this->errors),
-                'message' => 'Error',
-                'code'    => 0,
-                'errors'=> $this->errors,
-            ], 400);
-        }
-
-
         return new JsonResponse([
-            'status'  =>  empty($this->errors),
+            'status'  =>  true,
             'message' => 'Success',
             'code'    => 0,
-            'errors'  => $this->errors,
+            'errors'  => [],
         ], 200);
     }
+
+    // /**
+    //  * @Route("/api/lunar/validate-api-keys", name="api.lunar.validate.api.keys", methods={"POST"})
+    //  */
+    // public function validateApiKeys(Request $request, Context $context): JsonResponse
+    // {
+    //     $liveAppKeyName = 'liveModeAppKey';
+    //     $livePublicKeyName = 'liveModePublicKey';
+    //     $testAppKeyName = 'testModeAppKey';
+    //     $testPublicKeyName = 'testModePublicKey';
+
+    //     $settingsKeys = $request->request->all()['keys'] ?? [];
+
+    //     // validate all fields regardless of transactionMode
+    //     $this->validateLiveAppKey($settingsKeys[$liveAppKeyName] ?? '');
+    //     $this->validateLivePublicKey($settingsKeys[$livePublicKeyName] ?? '');
+    //     $this->validateTestAppKey($settingsKeys[$testAppKeyName] ?? '');
+    //     $this->validateTestPublicKey($settingsKeys[$testPublicKeyName] ?? '');
+
+    //     if (!empty($this->errors)) {
+    //         return new JsonResponse([
+    //             'status'  => empty($this->errors),
+    //             'message' => 'Error',
+    //             'code'    => 0,
+    //             'errors'=> $this->errors,
+    //         ], 400);
+    //     }
+
+
+    //     return new JsonResponse([
+    //         'status'  =>  empty($this->errors),
+    //         'message' => 'Success',
+    //         'code'    => 0,
+    //         'errors'  => $this->errors,
+    //     ], 200);
+    // }
 
 
     /**

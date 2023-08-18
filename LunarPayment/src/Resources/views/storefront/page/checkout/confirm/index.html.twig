@@ -2,6 +2,7 @@
 
 {% set isAuthorizationError = 'AUTHORIZATION_ERROR' === page.getErrorCode() %}
 {% set isCaptureError = 'CAPTURE_ERROR' === page.getErrorCode() %}
+{% set isTransactionError = 'TRANSACTION_ERROR' === page.getErrorCode() %}
 
 {% block page_checkout_confirm_alerts %}
     {{ parent() }}
@@ -17,87 +18,16 @@
                 type: "danger",
                 content: 'Transaction capture failed.'
             } %}
+        {% elseif  isTransactionError %}
+            {% sw_include '@Storefront/storefront/utilities/alert.html.twig' with {
+                type: "danger",
+                content: 'Transaction not found.'
+            } %}
         {% endif %}
     </div>
 
 {% endblock %}
 
 
-{% block page_checkout_confirm_form_submit %}
-    {{ parent() }}
 
-    {% if context.paymentMethod.id === '1a9bc76a3c244278a51a2e90c1e6f040' %}
 
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-                integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous">
-        </script>
-        <script type="text/javascript" src="https://sdk.paylike.io/a.js"></script>
-
-        <script type="text/javascript">
-            jQuery(document).ready(function () {
-                // disable button in case of an error
-                {% if isAuthorizationError || isCaptureError %}
-                    jQuery('#confirmOrderForm button[type=submit]').attr('disabled', true);
-                {% endif %}
-
-                jQuery('#confirmOrderForm button[type=submit]').on('click', function(e) {
-                    e.preventDefault();
-
-                    // verify if the form can be submitted
-                    let form = document.getElementById('confirmOrderForm');
-                    if (!form.checkValidity()) {
-                        form.reportValidity();
-                        return;
-                    }
-
-                    const lunarData = {{ page.lunar | json_encode|raw }};
-
-                    const sdkClient = Paylike({key: lunarData.public_key });
-
-                    sdkClient.pay({
-                        test: ('live' === lunarData.plugin_mode) ? (false) : (true),
-                        title: lunarData.popup_title,
-                        description: lunarData.popup_description,
-                        amount: {
-                            currency: lunarData.currency_code,
-                            exponent: lunarData.currency_exponent,
-                            value: lunarData.amount_value,
-                        },
-                        locale: lunarData.language,
-                        custom: {
-                            email: lunarData.email,
-                            products: lunarData.products,
-                            customer: {
-                                name: lunarData.name,
-                                email: lunarData.email,
-                                phoneNo: lunarData.phone,
-                                address: lunarData.address,
-                                IP: lunarData.ip
-                            },
-                            platform: {
-                                'Shopware 6': lunarData.shopware_version
-                            },
-                            pluginVersion: {
-                                'Lunar': lunarData.plugin_version
-                            }
-                        }
-                    }, function(err, res) {
-                        if (err) return console.log(err);
-
-                        if (res.transaction.id === undefined && res.transaction.id === "") {
-                            // show error message
-                        } else {
-                            jQuery('#lunar_transaction_id').val(res.transaction.id);
-                            jQuery('#confirmOrderForm').submit();
-                        }
-                    });
-                });
-            });
-
-        </script>
-
-        <input type="hidden" form="confirmOrderForm" id="lunar_transaction_id" name="lunar_transaction_id">
-
-    {% endif %}
-
-{% endblock %}

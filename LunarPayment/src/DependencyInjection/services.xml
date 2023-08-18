@@ -19,6 +19,17 @@
             <tag name="shopware.payment.method.sync" />
         </service>
 
+        <!-- hosted checkout -->
+        <service id="Lunar\Payment\Service\LunarHostedCheckoutHandler">
+            <!-- <argument type="service" id="monolog.logger"/> -->
+            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="state_machine_state.repository"/>
+            <argument>%kernel.shopware_version%</argument>
+            <tag name="shopware.payment.method.async"/>
+        </service>
+
         <service id="Lunar\Payment\Helpers\OrderHelper">
             <argument type="service" id="order.repository" />
             <argument type="service" id="order_transaction.repository" />

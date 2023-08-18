@@ -1,7 +1,7 @@
 {
     "name": "lunar/plugin-shopware-6",
     "description": "Secure payment with credit card via Lunar",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
@@ -11,10 +11,10 @@
         }
     ],
     "require": {
+        "php": ">=8.0",
         "shopware/core": "^6.4 | ^6.5",
         "shopware/administration": "^6.4 | ^6.5",
-        "shopware/storefront": "^6.4 | ^6.5",
-        "paylike/php-api": "^2.0"
+        "shopware/storefront": "^6.4 | ^6.5"
     },
     "extra": {
         "shopware-plugin-class": "Lunar\\Payment\\LunarPayment",

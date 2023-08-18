@@ -2,7 +2,7 @@
 
 namespace Lunar\Payment\Helpers;
 
-use Paylike\Exception\ApiException;
+use Lunar\Exception\ApiException;
 
 /**
  * Returns descriptive error messages

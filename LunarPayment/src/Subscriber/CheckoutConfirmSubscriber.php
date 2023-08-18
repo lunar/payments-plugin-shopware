@@ -135,7 +135,7 @@ class CheckoutConfirmSubscriber implements EventSubscriberInterface
                 'phone' => $address->phoneNumber,
                 'address' => $customerAddress,
                 'ip' => $customer->getRemoteAddress(),
-                'plugin_version' => PluginHelper::PLUGIN_VERSION,
+                'plugin_version' => PluginHelper::getPluginVersion(),
                 'shopware_version' => $this->shopwareVersion,
             ]
         ]);

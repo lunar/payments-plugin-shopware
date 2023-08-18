@@ -13,7 +13,7 @@ use Shopware\Core\Checkout\Payment\Exception\SyncPaymentProcessException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\SynchronousPaymentHandlerInterface;
 
-use Paylike\Paylike as ApiClient;
+use Lunar\Lunar as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\CurrencyHelper;
@@ -25,27 +25,12 @@ use Lunar\Payment\Exception\TransactionException;
  */
 class LunarPaymentHandler implements SynchronousPaymentHandlerInterface
 {
-    /** @var OrderTransactionStateHandler */
-    private $transactionStateHandler;
-
-    /** @var SystemConfigService */
-    private $systemConfigService;
-
-    /** @var EntityRepository */
-    private $lunarTransactionRepository;
-
-    /** @var EntityRepository */
-    private $orderTransactionRepository;
-
-    /** @var Logger */
-    private $logger;
-
     public function __construct(
-        OrderTransactionStateHandler $transactionStateHandler,
-        SystemConfigService $systemConfigService,
-        EntityRepository $lunarTransactionRepository,
-        EntityRepository $orderTransactionRepository,
-        Logger $logger
+        private OrderTransactionStateHandler $transactionStateHandler,
+        private SystemConfigService $systemConfigService,
+        private EntityRepository $lunarTransactionRepository,
+        private EntityRepository $orderTransactionRepository,
+        private Logger $logger
     ) {
         $this->transactionStateHandler = $transactionStateHandler;
         $this->systemConfigService = $systemConfigService;
@@ -75,7 +60,7 @@ class LunarPaymentHandler implements SynchronousPaymentHandlerInterface
         $transactionMode = $this->systemConfigService->get($configPath . 'transactionMode');
         $transactionId = $dataBag->get('lunar_transaction_id');
 
-        if ('' === $transactionId || null === $transactionId) {
+        if (!$transactionId) {
             $this->logger->writeLog(['Frontend process error: No shopware order transaction ID was provided (unable to extract it)']);
             throw new TransactionException($orderTransactionId, '', null, 'AUTHORIZATION_ERROR');
         }
