@@ -26,7 +26,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Lunar\Lunar as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
-use Lunar\Payment\Helpers\CurrencyHelper;
 use Lunar\Payment\Helpers\LogHelper as Logger;
 use Lunar\Payment\Exception\TransactionException;
 
@@ -41,14 +40,12 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         OrderTransactionStates::STATE_AUTHORIZED,
     ];
 
-    private string $shopwareVersion = '';
-
     private ApiClient $lunarApiClient;
     private OrderEntity $order;
     private SalesChannelContext $salesChannelContext;
     private OrderTransactionEntity $orderTransaction;
-    
-    private ?string $salesChannelId = null;
+    private AsyncPaymentTransactionStruct $paymentTransaction;
+
     private string $intentIdKey = '_lunar_intent_id';
     private bool $isInstantMode = false;
     private array $args = [];
@@ -63,7 +60,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         private SystemConfigService $systemConfigService,
         private OrderTransactionStateHandler $orderTransactionStateHandler,
         private EntityRepository $stateMachineStateRepository,
-        string $shopwareVersion
+        private string $shopwareVersion
     ) {
         $this->logger = $logger;
         $this->orderTransactionStateHandler = $orderTransactionStateHandler;
@@ -71,24 +68,21 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->shopwareVersion = $shopwareVersion;
     }
 
+
     /**
      * @throws AsyncPaymentProcessException
      */
     public function pay(
-        AsyncPaymentTransactionStruct $transaction,
+        AsyncPaymentTransactionStruct $paymentTransaction,
         RequestDataBag $dataBag,
         SalesChannelContext $salesChannelContext
     ): RedirectResponse {
-file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
-        $this->salesChannelContext = $salesChannelContext;
 
         $this->logger->writeLog(['Start Lunar payment']);
 
-        /** Prepare vars. */
-        $context = $salesChannelContext->getContext();
-        $this->salesChannelId = $salesChannelContext->getSalesChannelId();
-        
-        $orderTransactionId = $transaction->getOrderTransaction()->getId();
+        $this->prepareVars($paymentTransaction, $salesChannelContext);
+
+        $orderTransactionId = $this->orderTransaction->getId();
 
         if (!$orderTransactionId) {
             $this->logger->writeLog(['Frontend process error: No shopware order transaction ID was provided (unable to extract it)']);
@@ -98,8 +92,7 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
         $this->setArgs();
 
         try {
-            $customer = $salesChannelContext->getCustomer();
-            if ($customer === null) {
+            if ($this->salesChannelContext->getCustomer() === null) {
                 throw CartException::customerNotLoggedIn();
             }
 
@@ -138,35 +131,40 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
      * @throws CustomerCanceledAsyncPaymentException
      */
     public function finalize(
-        AsyncPaymentTransactionStruct $transaction,
+        AsyncPaymentTransactionStruct $paymentTransaction,
         Request $request,
         SalesChannelContext $salesChannelContext
     ): void {
 
         $this->logger->writeLog(['Started']);
         
-        if ($this->transactionAlreadyFinalized($transaction, $salesChannelContext)) {
+        if ($this->transactionAlreadyFinalized($paymentTransaction, $salesChannelContext)) {
             $this->logger->writeLog(['Already finalized']);
 
             return;
         }
-
-        $this->orderTransaction = $transaction->getOrderTransaction();
+        
+        $this->prepareVars($paymentTransaction, $salesChannelContext);
+        
         $orderTransactionId = $this->orderTransaction->getId();
         
-        if ($this->isTransactionCanceled($transaction, $salesChannelContext)) {
+        if ($this->isTransactionCanceled()) {
             $this->logger->writeLog(['Customer canceled']);
             
             throw new CustomerCanceledAsyncPaymentException($orderTransactionId, 'Customer canceled the payment on the Lunar page');
         }
         
-        $this->salesChannelContext = $salesChannelContext;
-
-        
         $this->setArgs();
 
-        
-        $orderId = $transaction->getOrder()->getId();
+        $apiResponse = $this->lunarApiClient->payments()->fetch($this->getPaymentIntentFromOrder());
+
+        $result = $this->parseApiTransactionResponse($apiResponse);
+
+        if (! $result) {
+            throw new AsyncPaymentFinalizeException($orderTransactionId, $this->getResponseError($apiResponse));
+        }
+
+        $this->paymentIntentId = $apiResponse['id'];
 
 
         // $orderCurrency = $salesChannelContext->getCurrency()->getIsoCode();
@@ -194,52 +192,55 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
 
 
 
-        try {
-            // validate settings???
+        // try {
+        //     // validate settings???
 
 
-            // if ($paymentState === 'completed') {
-            //     // Payment completed, set transaction status to "paid"
-            //     $this->orderTransactionStateHandler->paid($orderTransactionId, $context);
-            // } else {
-            //     // Payment not completed, set transaction status to "open"
-            //     $this->orderTransactionStateHandler->reopen($orderTransactionId, $context);
-            // }
+        //     // if ($paymentState === 'completed') {
+        //     //     // Payment completed, set transaction status to "paid"
+        //     //     $this->orderTransactionStateHandler->paid($orderTransactionId, $context);
+        //     // } else {
+        //     //     // Payment not completed, set transaction status to "open"
+        //     //     $this->orderTransactionStateHandler->reopen($orderTransactionId, $context);
+        //     // }
 
-        } catch (\Exception $e) {
-            throw new AsyncPaymentFinalizeException($orderTransactionId, $e->getMessage());
-        }
+        // } catch (\Exception $e) {
+        //     throw new AsyncPaymentFinalizeException($orderTransactionId, $e->getMessage());
+        // }
     }
 
     /**
      * 
      */
-    private function setArgs()
+    private function prepareVars($paymentTransaction, $salesChannelContext): void
+    {
+        $this->salesChannelContext = $salesChannelContext;
+        $this->paymentTransaction = $paymentTransaction;
+        $this->orderTransaction = $this->paymentTransaction->getOrderTransaction();
+        $this->order = $this->paymentTransaction->getOrder();        
+        
+        $this->testMode = 'test' == $this->getSalesChannelConfig('transactionMode');
+        if ($this->testMode) {
+            $this->publicKey =  $this->getSalesChannelConfig('testModePublicKey');
+            $privateKey =  $this->getSalesChannelConfig('testModeAppKey');
+        } else {
+            $this->publicKey = $this->getSalesChannelConfig('liveModePublicKey');
+            $privateKey = $this->getSalesChannelConfig('liveModeAppKey');
+        }
+
+        /** 
+         * API Client instance 
+         */
+        $this->lunarApiClient = new ApiClient($privateKey);
+    }
+
+    /**
+     * 
+     */
+    private function setArgs(): void
     {
         $currency = $this->salesChannelContext->getCurrency()->getIsoCode();
         $orderTotalAmount = $this->order->getAmountTotal();
-        
-        if ($this->testMode) {
-            $this->args['test'] = PluginHelper::getTestObject($currency);
-        }
-
-        $this->args['integration'] = [
-            'key' => $this->publicKey,
-            'name' => $this->getSalesChannelConfig('shopTitle'),
-            'logo' =>  $this->getSalesChannelConfig('logoUrl'),
-        ];
-
-        $this->args['amount'] = [
-            'currency' => $currency,
-            'decimal' => $orderTotalAmount,
-        ];
-
-        if ($this->getSalesChannelConfig('configurationId')) {
-            $this->args['mobilePayConfiguration'] = [
-                'configurationID' => $this->getSalesChannelConfig('configurationId'),
-                'logo'            => $this->getSalesChannelConfig('logoUrl'),
-            ];
-        }
 
         $customer = $this->salesChannelContext->getCustomer();
         $address = $customer->getActiveBillingAddress();
@@ -253,70 +254,87 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
                             . $address->getCountry()->iso;
 
         $products = [];
-        foreach ($this->order->getLineItems() as $product) {
+        foreach ($this->order->getLineItems() as $lineItem) {
             $products[] = [
-                'ID' => $product->getAutoIncrement(),
-                'name' => $product->getLabel(),
-                'quantity' => $product->getQuantity(),
+                // 'ID' => ($lineItem->product)->getProductNumber(), // not working this way
+                'name' => $lineItem->getLabel(),
+                'quantity' => $lineItem->getQuantity(),
             ];
         }
 
-        $this->args['custom'] = [
-            'orderId' => $this->order->getOrderNumber(),
-            'products' => $products,
-            'customer' => [
-                'name' => $customerName,
-                'email' => $customer->getEmail(),
-                'phoneNo' => null, // update this
-                'address' => $customerAddress,
-                'IP' => $customer->getRemoteAddress(),
-            ],
-            'platform' => [
-                'name' => 'Shopware',
-                'version' => $this->shopwareVersion,
-            ],
-            'lunarPluginVersion' => PluginHelper::getPluginVersion(),
-        ];
-
-        // $this->args['redirectUrl'] = ..................
-
         // @TODO remove hardcoded value
-        // $this->args['preferredPaymentMethod'] = $this->paymentMethodCode == PluginHelper::PAYMENT_METHOD_NAME ? 'card' : 'mobilePay';
-        $this->args['preferredPaymentMethod'] = 'card'; 
+        // $preferredPaymentMethod = $this->paymentMethodCode == PluginHelper::PAYMENT_METHOD_NAME ? 'card' : 'mobilePay';
+        $preferredPaymentMethod = 'card'; 
+
+
+        $this->args = [
+			'integration' => [
+				'key' => $this->publicKey,
+                'name' => $this->getSalesChannelConfig('shopTitle'),
+                'logo' =>  $this->getSalesChannelConfig('logoURL'),
+			],
+			'amount' => [
+                'currency' => $currency,
+                'decimal' => (string) $orderTotalAmount,
+            ],
+			'custom' => [
+				'orderId' => $this->order->getOrderNumber(),
+				'products' => $products,
+                'customer' => [
+                    'name' => $customerName,
+                    'email' => $customer->getEmail(),
+                    'phoneNo' => null, // update this
+                    'address' => $customerAddress,
+                    'IP' => $customer->getRemoteAddress(),
+                ],
+				'platform' => [
+					'name' => 'Shopware',
+					'version' => $this->shopwareVersion,
+                ],
+				'lunarPluginVersion' => PluginHelper::getPluginVersion(),
+            ],
+			'redirectUrl' => sprintf('%s', $this->paymentTransaction->getReturnUrl()),
+			'preferredPaymentMethod' => $preferredPaymentMethod,
+		];
+
+        if ($this->getSalesChannelConfig('configurationId')) {
+            $this->args['mobilePayConfiguration'] = [
+                'configurationID' => $this->getSalesChannelConfig('configurationId'),
+                'logo' => $this->getSalesChannelConfig('logoURL'),
+            ];
+        }
+
+        if ($this->testMode) {
+            $this->args['test'] = PluginHelper::getTestObject($currency);
+        }
 
     }
 
     /** 
      * 
      */
-    private function transactionAlreadyFinalized(
-        AsyncPaymentTransactionStruct $transaction,
-        SalesChannelContext $salesChannelContext
-    ): bool {
-        $transactionStateMachineStateId = $transaction->getOrderTransaction()->getStateId();
+    private function transactionAlreadyFinalized(): bool 
+    {
+        $transactionStateMachineStateId = $this->orderTransaction->getStateId();
         $criteria = new Criteria([$transactionStateMachineStateId]);
 
         /** @var StateMachineStateEntity|null $stateMachineState */
         $stateMachineState = $this->stateMachineStateRepository->search(
             $criteria,
-            $salesChannelContext->getContext()
+            $this->salesChannelContext->getContext()
         )->get($transactionStateMachineStateId);
 
         if ($stateMachineState === null) {
             return false;
         }
 
-        return \in_array(
-            $stateMachineState->getTechnicalName(),
-            self::FINALIZED_ORDER_TRANSACTION_STATES,
-            true
-        );
+        return in_array( $stateMachineState->getTechnicalName(), self::FINALIZED_ORDER_TRANSACTION_STATES, true);
     }
 
     /**
      * @TODO add logic here
      */
-    private function isTransactionCanceled($transaction, $salesChannelContext): bool
+    private function isTransactionCanceled(): bool
     {
         //
         return false;
@@ -344,10 +362,10 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
     /**
      * Parses api transaction response for errors
      */
-    protected function parseApiTransactionResponse($transaction)
+    protected function parseApiTransactionResponse($apiResponse)
     {
-        if (! $this->isTransactionSuccessful($transaction)) {
-            $this->logger->writeLog(["Transaction with error: " . json_encode($transaction, JSON_PRETTY_PRINT)]);
+        if (! $this->isTransactionSuccessful($apiResponse)) {
+            $this->logger->writeLog(["Transaction with error: " . json_encode($apiResponse, JSON_PRETTY_PRINT)]);
             return false;
         }
 
@@ -360,12 +378,12 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
      * 
      * @return bool
      */
-    private function isTransactionSuccessful($transaction)
+    private function isTransactionSuccessful($apiResponse)
     {   
-        $matchCurrency = $this->order->getCurrency()->isoCode == $transaction['amount']['currency'];
-        $matchAmount = $this->args['amount']['decimal'] == $transaction['amount']['decimal'];
+        $matchCurrency = $this->order->getCurrency()->isoCode == $apiResponse['amount']['currency'];
+        $matchAmount = $this->args['amount']['decimal'] == $apiResponse['amount']['decimal'];
 
-        return (true == $transaction['authorisationCreated'] && $matchCurrency && $matchAmount);
+        return (true == $apiResponse['authorisationCreated'] && $matchCurrency && $matchAmount);
     }
 
     /**
@@ -400,6 +418,6 @@ file_put_contents("/var/www/html/var/log/zzz.log", json_encode('here', JSON_PRET
      */
     private function getSalesChannelConfig(string $key)
     {
-        return $this->systemConfigService->get(PluginHelper::PLUGIN_CONFIG_PATH . $key, $this->salesChannelId);
+        return $this->systemConfigService->get(PluginHelper::PLUGIN_CONFIG_PATH . $key, $this->salesChannelContext->getSalesChannelId());
     }
 }

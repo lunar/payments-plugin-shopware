@@ -32,41 +32,15 @@ class OrderTransactionController extends AbstractController
 {
     private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
 
-    /** @var EntityRepository */
-    private $stateMachineHistory;
-
-    /** @var StateMachineRegistry */
-    private $stateMachineRegistry;
-
-    /** @var OrderTransactionStateHandler */
-    private $transactionStateHandler;
-
-    /** @var EntityRepository */
-    private $lunarTransactionRepository;
-
-    /** @var OrderHelper */
-    private $orderHelper;
-
-    /** @var SystemConfigService */
-    private $systemConfigService;
-
-    /** @var Logger */
-    private $logger;
-
-
-    /**
-     * Constructor
-     */
     public function __construct(
-        EntityRepository $stateMachineHistory,
-        StateMachineRegistry $stateMachineRegistry,
-        OrderTransactionStateHandler $transactionStateHandler,
-        EntityRepository $lunarTransactionRepository,
-        OrderHelper $orderHelper,
-        SystemConfigService $systemConfigService,
-        Logger $logger
-    )
-    {
+        private EntityRepository $stateMachineHistory,
+        private StateMachineRegistry $stateMachineRegistry,
+        private OrderTransactionStateHandler $transactionStateHandler,
+        private EntityRepository $lunarTransactionRepository,
+        private OrderHelper $orderHelper,
+        private SystemConfigService $systemConfigService,
+        private Logger $logger
+    ) {
         $this->stateMachineHistory = $stateMachineHistory;
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->transactionStateHandler = $transactionStateHandler;
@@ -115,8 +89,7 @@ class OrderTransactionController extends AbstractController
                                             Request $request,
                                             Context $context,
                                             string $actionType
-    ): JsonResponse
-    {
+    ): JsonResponse {
 
         switch ($actionType) {
             case OrderHelper::CAPTURE_STATUS:

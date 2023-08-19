@@ -3,7 +3,7 @@
 namespace Lunar\Payment\Controller;
 
 use Shopware\Core\Framework\Context;
-// use Shopware\Core\System\SystemConfig\SystemConfigService;
+use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -12,7 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 use Lunar\Lunar as ApiClient;
 use Lunar\Exception\ApiException;
-// use Lunar\Payment\Helpers\PluginHelper;
+use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\ValidationHelper;
 
 /**
@@ -20,21 +20,17 @@ use Lunar\Payment\Helpers\ValidationHelper;
  */
 class SettingsController extends AbstractController
 {
-    // private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
-
-    // /** @var SystemConfigService $systemConfigService */
-    // private $systemConfigService;
+    private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
 
     private array $errors = [];
     private array $livePublicKeys = [];
     private array $testPublicKeys = [];
 
-    // public function __construct(
-    //     SystemConfigService $systemConfigService
-    // )
-    // {
-    //     $this->systemConfigService = $systemConfigService;
-    // }
+    public function __construct(
+       private SystemConfigService $systemConfigService
+    ) {
+        $this->systemConfigService = $systemConfigService;
+    }
 
     /**
      * Temporary added - we don't validate the keys
@@ -50,6 +46,10 @@ class SettingsController extends AbstractController
             'errors'  => [],
         ], 200);
     }
+
+    /**
+     * @TODO add validate logo URL logic
+     */
 
     // /**
     //  * @Route("/api/lunar/validate-api-keys", name="api.lunar.validate.api.keys", methods={"POST"})

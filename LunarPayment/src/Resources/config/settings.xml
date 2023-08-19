@@ -42,6 +42,13 @@
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
 
+        <input-field>
+            <name>logoURL</name>
+            <label>Logo URL</label>
+            <helpText>URL must start with "https://", and the image must have PNG, JPG, JPEG extension.</helpText>
+            <required>true</required>
+        </input-field>
+
         <input-field type="single-select">
             <name>captureMode</name>
             <label>Capture Mode</label>
