@@ -4,6 +4,8 @@ namespace Lunar\Payment\Service;
 
 // use Psr\Log\LoggerInterface;
 
+use Shopware\Core\Defaults;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStates;
@@ -22,8 +24,12 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEnti
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Shopware\Core\System\Currency\CurrencyCollection;
+use Shopware\Core\System\Currency\CurrencyEntity;
+use Shopware\Core\Framework\ShopwareHttpException;
 
 use Lunar\Lunar as ApiClient;
+use Lunar\Exception\ApiException as LunarApiException;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\LogHelper as Logger;
@@ -49,7 +55,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
     private string $intentIdKey = '_lunar_intent_id';
     private bool $isInstantMode = false;
     private array $args = [];
-    private string $paymentIntentId = '';
     private bool $testMode = false;
     private string $publicKey = '';
 
@@ -60,153 +65,18 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         private SystemConfigService $systemConfigService,
         private OrderTransactionStateHandler $orderTransactionStateHandler,
         private EntityRepository $stateMachineStateRepository,
+        private EntityRepository $lunarTransactionRepository,
+        private EntityRepository $orderRepository,
+        private EntityRepository $currencyRepository,
         private string $shopwareVersion
     ) {
         $this->logger = $logger;
         $this->orderTransactionStateHandler = $orderTransactionStateHandler;
         $this->stateMachineStateRepository = $stateMachineStateRepository;
+        $this->lunarTransactionRepository = $lunarTransactionRepository;
+        $this->orderRepository = $orderRepository;
+        $this->currencyRepository = $currencyRepository;
         $this->shopwareVersion = $shopwareVersion;
-    }
-
-
-    /**
-     * @throws AsyncPaymentProcessException
-     */
-    public function pay(
-        AsyncPaymentTransactionStruct $paymentTransaction,
-        RequestDataBag $dataBag,
-        SalesChannelContext $salesChannelContext
-    ): RedirectResponse {
-
-        $this->logger->writeLog(['Start Lunar payment']);
-
-        $this->prepareVars($paymentTransaction, $salesChannelContext);
-
-        $orderTransactionId = $this->orderTransaction->getId();
-
-        if (!$orderTransactionId) {
-            $this->logger->writeLog(['Frontend process error: No shopware order transaction ID was provided (unable to extract it)']);
-            throw new TransactionException($orderTransactionId, '', null, 'TRANSACTION_ERROR');
-        }
-
-        $this->setArgs();
-
-        try {
-            if ($this->salesChannelContext->getCustomer() === null) {
-                throw CartException::customerNotLoggedIn();
-            }
-
-            if (! $this->getPaymentIntentFromOrder()) {
-                $this->paymentIntentId = $this->lunarApiClient->payments()->create($this->args);
-            }
-    
-            if (! $this->paymentIntentId) {
-                $errorMessage = 'An error occured creating payment for order. Please try again or contact system administrator.'; // <a href="/">Go to homepage</a>'
-                throw new AsyncPaymentProcessException($orderTransactionId, $errorMessage);
-            }
-    
-            $this->savePaymentIntentOnOrder();
-    
-            $redirectUrl = self::REMOTE_URL . $this->paymentIntentId;
-            if(isset($this->args['test'])) {
-                $redirectUrl = self::TEST_REMOTE_URL . $this->paymentIntentId;
-            }
-
-            return new RedirectResponse($redirectUrl);
-
-        } catch(\Lunar\Exception\ApiException $e) {
-            $this->logger->writeLog(['API exception' => $e->getMessage()]);
-
-            throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
-
-        } catch (\Exception $e) {
-            $this->logger->writeLog(['Exception' => $e->getMessage()]);
-
-            throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
-        }
-    }
-
-    /**
-     * @throws AsyncPaymentFinalizeException
-     * @throws CustomerCanceledAsyncPaymentException
-     */
-    public function finalize(
-        AsyncPaymentTransactionStruct $paymentTransaction,
-        Request $request,
-        SalesChannelContext $salesChannelContext
-    ): void {
-
-        $this->logger->writeLog(['Started']);
-        
-        if ($this->transactionAlreadyFinalized($paymentTransaction, $salesChannelContext)) {
-            $this->logger->writeLog(['Already finalized']);
-
-            return;
-        }
-        
-        $this->prepareVars($paymentTransaction, $salesChannelContext);
-        
-        $orderTransactionId = $this->orderTransaction->getId();
-        
-        if ($this->isTransactionCanceled()) {
-            $this->logger->writeLog(['Customer canceled']);
-            
-            throw new CustomerCanceledAsyncPaymentException($orderTransactionId, 'Customer canceled the payment on the Lunar page');
-        }
-        
-        $this->setArgs();
-
-        $apiResponse = $this->lunarApiClient->payments()->fetch($this->getPaymentIntentFromOrder());
-
-        $result = $this->parseApiTransactionResponse($apiResponse);
-
-        if (! $result) {
-            throw new AsyncPaymentFinalizeException($orderTransactionId, $this->getResponseError($apiResponse));
-        }
-
-        $this->paymentIntentId = $apiResponse['id'];
-
-
-        // $orderCurrency = $salesChannelContext->getCurrency()->getIsoCode();
-        
-        // $orderTransactionId = $this->orderTransaction->getId();
-        // $transactionAmount = $this->orderTransaction->getAmount()->getTotalPrice();
-
-
-        // $amountInMinor = (int) CurrencyHelper::getAmountInMinor($orderCurrency, $transactionAmount);
-
-        // $transactionData = [
-        //     [
-        //         'orderId' => $orderId,
-        //         'transactionId' => $transactionId,
-        //         'transactionType' => OrderHelper::AUTHORIZE_STATUS,
-        //         'transactionCurrency' => $orderCurrency,
-        //         'orderAmount' => $transactionAmount,
-        //         'transactionAmount' => $transactionAmount,
-        //         'amountInMinor' => 0,
-        //         'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
-        //     ],
-        // ];
-
-        // $this->logger->writeLog([['Frontend request data: ', $transactionData[0]]]);
-
-
-
-        // try {
-        //     // validate settings???
-
-
-        //     // if ($paymentState === 'completed') {
-        //     //     // Payment completed, set transaction status to "paid"
-        //     //     $this->orderTransactionStateHandler->paid($orderTransactionId, $context);
-        //     // } else {
-        //     //     // Payment not completed, set transaction status to "open"
-        //     //     $this->orderTransactionStateHandler->reopen($orderTransactionId, $context);
-        //     // }
-
-        // } catch (\Exception $e) {
-        //     throw new AsyncPaymentFinalizeException($orderTransactionId, $e->getMessage());
-        // }
     }
 
     /**
@@ -217,7 +87,8 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->salesChannelContext = $salesChannelContext;
         $this->paymentTransaction = $paymentTransaction;
         $this->orderTransaction = $this->paymentTransaction->getOrderTransaction();
-        $this->order = $this->paymentTransaction->getOrder();        
+        $this->order = $this->paymentTransaction->getOrder();
+        $this->isInstantMode = 'instant' === $this->getSalesChannelConfig('captureMode');
         
         $this->testMode = 'test' == $this->getSalesChannelConfig('transactionMode');
         if ($this->testMode) {
@@ -232,6 +103,154 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
          * API Client instance 
          */
         $this->lunarApiClient = new ApiClient($privateKey);
+    }
+
+    /**
+     * PAY
+     * 
+     * @throws AsyncPaymentProcessException
+     */
+    public function pay(
+        AsyncPaymentTransactionStruct $paymentTransaction,
+        RequestDataBag $dataBag,
+        SalesChannelContext $salesChannelContext
+    ): RedirectResponse {
+
+        $this->logger->writeLog('Start Lunar payment');
+
+        $this->prepareVars($paymentTransaction, $salesChannelContext);
+
+        $orderTransactionId = $this->orderTransaction->getId();
+
+        if (!$orderTransactionId) {
+            $this->logger->writeLog('No shopware order transaction ID was provided (unable to extract it)');
+            throw new TransactionException($orderTransactionId, '', null, 'TRANSACTION_ERROR');
+        }
+
+        $this->setArgs();
+
+        try {
+            if ($this->salesChannelContext->getCustomer() === null) {
+                throw CartException::customerNotLoggedIn();
+            }
+
+            if (! $this->getPaymentIntentFromOrder()) {
+                $paymentIntentId = $this->lunarApiClient->payments()->create($this->args);
+            }
+    
+            if (empty($paymentIntentId)) {
+                $errorMessage = 'An error occured creating payment for order. Please try again or contact system administrator.'; // <a href="/">Go to homepage</a>'
+                throw new AsyncPaymentProcessException($orderTransactionId, $errorMessage);
+            }
+    
+            $this->savePaymentIntentOnOrder($paymentIntentId, $salesChannelContext->getContext());
+    
+            $redirectUrl = self::REMOTE_URL . $paymentIntentId;
+            if(isset($this->args['test'])) {
+                $redirectUrl = self::TEST_REMOTE_URL . $paymentIntentId;
+            }
+
+            return new RedirectResponse($redirectUrl);
+
+        } catch(LunarApiException $e) {
+            $this->logger->writeLog(['API exception' => $e->getMessage()]);
+
+            throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
+
+        } catch (\Exception $e) {
+            $this->logger->writeLog(['Exception' => $e->getMessage()]);
+
+            throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
+        }
+    }
+
+    /**
+     * FINALIZE
+     * 
+     * @throws AsyncPaymentFinalizeException
+     * @throws CustomerCanceledAsyncPaymentException
+     */
+    public function finalize(
+        AsyncPaymentTransactionStruct $paymentTransaction,
+        Request $request,
+        SalesChannelContext $salesChannelContext
+    ): void {
+
+        $this->logger->writeLog('Start finalize payment');
+
+        $context = $salesChannelContext->getContext();
+
+        $this->prepareVars($paymentTransaction, $salesChannelContext);
+
+        if ($this->transactionAlreadyFinalized()) {
+            $this->logger->writeLog('Already finalized');
+
+            return;
+        }
+        
+        $orderTransactionId = $this->orderTransaction->getId();
+        
+        if ($this->isTransactionCanceled()) {
+            $this->logger->writeLog('Customer canceled');
+            
+            throw new CustomerCanceledAsyncPaymentException($orderTransactionId, 'Customer canceled the payment on the Lunar page');
+        }
+
+        $paymentIntentId = $this->getPaymentIntentFromOrder();
+
+        if (! $paymentIntentId) {
+            throw new AsyncPaymentFinalizeException($orderTransactionId, 'Missing payment intent');
+        }
+
+        $apiResponse = $this->lunarApiClient->payments()->fetch($paymentIntentId);
+        
+        if (! $this->parseApiTransactionResponse($apiResponse)) {
+            throw new AsyncPaymentFinalizeException($orderTransactionId, $this->getResponseError($apiResponse));
+        }
+
+        $orderCurrency = $this->getCurrency($context);
+        $transactionAmount = $this->orderTransaction->getAmount()->getTotalPrice();
+
+        $transactionData = [
+            [
+                'orderId' => $this->order->getId(),
+                'transactionId' => $paymentIntentId,
+                'transactionType' => OrderHelper::AUTHORIZE_STATUS,
+                'transactionCurrency' => $orderCurrency,
+                'orderAmount' => $transactionAmount,
+                'transactionAmount' => $transactionAmount,
+                'amountInMinor' => 0,
+                'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
+            ],
+        ];
+
+        $params = [
+            'amount' => [
+                'currency' => $orderCurrency,
+                'decimal' => (string) $transactionAmount,
+            ]
+        ];
+
+        if ($this->isInstantMode) {          
+            try {
+                // $apiTransactionResponse = $this->lunarApiClient->payments()->capture($paymentIntentId, $params);
+                $this->lunarApiClient->payments()->capture($paymentIntentId, $params);
+            } catch (LunarApiException $e) {
+                throw new AsyncPaymentFinalizeException($orderTransactionId, $e->getMessage());
+            }
+
+            /** Set order transaction status -> "Paid" */
+            $this->orderTransactionStateHandler->paid($orderTransactionId, $context);
+
+            /** Change type of transaction for data to be saved in DB cutom table. */
+            $transactionData[0]['transactionType'] = OrderHelper::CAPTURE_STATUS;
+
+        } else {
+            $this->orderTransactionStateHandler->authorize($orderTransactionId, $context);            
+        }
+
+        /** Insert transaction data to custom table. */
+        $this->lunarTransactionRepository->create($transactionData, $context);
     }
 
     /**
@@ -310,53 +329,28 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
 
     }
 
-    /** 
-     * 
-     */
-    private function transactionAlreadyFinalized(): bool 
-    {
-        $transactionStateMachineStateId = $this->orderTransaction->getStateId();
-        $criteria = new Criteria([$transactionStateMachineStateId]);
-
-        /** @var StateMachineStateEntity|null $stateMachineState */
-        $stateMachineState = $this->stateMachineStateRepository->search(
-            $criteria,
-            $this->salesChannelContext->getContext()
-        )->get($transactionStateMachineStateId);
-
-        if ($stateMachineState === null) {
-            return false;
-        }
-
-        return in_array( $stateMachineState->getTechnicalName(), self::FINALIZED_ORDER_TRANSACTION_STATES, true);
-    }
-
     /**
-     * @TODO add logic here
-     */
-    private function isTransactionCanceled(): bool
-    {
-        //
-        return false;
-    }
-
-        /**
      *
      */
-    private function getPaymentIntentFromOrder()
+    private function getPaymentIntentFromOrder(): ?string
     {
-        $paymentIntentId = $this->orderTransaction->getCustomFieldsValue($this->intentIdKey);
-        return $paymentIntentId;
+        return $this->order->getCustomFieldsValue($this->intentIdKey);
     }
 
     /**
      *
      */
-    private function savePaymentIntentOnOrder()
+    private function savePaymentIntentOnOrder(string $paymentIntentId, Context $context): void
     {
-        $oldCustomFields = $this->orderTransaction->getCustomFields();
-        $customFields = array_merge([$this->intentIdKey => $this->paymentIntentId], $oldCustomFields);
-        $this->orderTransaction->setCustomFields($customFields);
+        $oldCustomFields = $this->order->getCustomFields() ?? [];
+        $customFields = array_merge([$this->intentIdKey => $paymentIntentId], $oldCustomFields);
+        $this->orderRepository->update([
+            [
+                'id' => $this->order->getId(),
+                'customFields' => $customFields,
+            ]
+        ], $context);
+        // ], Context::createDefaultContext()); // if we pass current context, updating not working
     }
 
     /**
@@ -379,9 +373,9 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
      * @return bool
      */
     private function isTransactionSuccessful($apiResponse)
-    {   
-        $matchCurrency = $this->order->getCurrency()->isoCode == $apiResponse['amount']['currency'];
-        $matchAmount = $this->args['amount']['decimal'] == $apiResponse['amount']['decimal'];
+    {
+        $matchCurrency = $this->getCurrency() == $apiResponse['amount']['currency'];
+        $matchAmount = $this->order->getAmountTotal() == $apiResponse['amount']['decimal'];
 
         return (true == $apiResponse['authorisationCreated'] && $matchCurrency && $matchAmount);
     }
@@ -411,6 +405,63 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
 
         return implode(' ', $error);
+    }
+
+    /** 
+     * 
+     */
+    private function transactionAlreadyFinalized(): bool 
+    {
+        $transactionStateMachineStateId = $this->orderTransaction->getStateId();
+        $criteria = new Criteria([$transactionStateMachineStateId]);
+
+        /** @var StateMachineStateEntity|null $stateMachineState */
+        $stateMachineState = $this->stateMachineStateRepository->search(
+            $criteria,
+            $this->salesChannelContext->getContext()
+        )->get($transactionStateMachineStateId);
+
+        if ($stateMachineState === null) {
+            return false;
+        }
+
+        return in_array($stateMachineState->getTechnicalName(), self::FINALIZED_ORDER_TRANSACTION_STATES, true);
+    }
+
+    /**
+     * @TODO add logic here
+     */
+    private function isTransactionCanceled(): bool
+    {
+        //
+        return false;
+    }
+
+    /**
+     * Fallback if order currency returns null
+     * 
+     * @throws ShopwareHttpException
+     */
+    private function getCurrency(?Context $context = null): string
+    {
+        $currencyEntity = $this->order->getCurrency();
+        if ($currencyEntity) {
+            return $this->order->getCurrency()->getIsoCode();
+        } 
+
+        $currencyId = $this->order->getCurrencyId();
+        $context = $context ?: $this->salesChannelContext->getContext();
+        $criteria = new Criteria([$currencyId]);
+
+        /** @var CurrencyCollection $currencyCollection */
+        $currencyCollection = $this->currencyRepository->search($criteria, $context)->getEntities();
+
+        $currencyEntity = $currencyCollection->get($currencyId);
+        if ($currencyEntity === null) {
+            throw new ShopwareHttpException('Currency provided not found');
+        }
+          
+        return $currencyEntity->getIsoCode();
     }
 
     /**

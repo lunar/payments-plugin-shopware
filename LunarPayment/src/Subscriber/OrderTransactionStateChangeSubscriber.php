@@ -10,7 +10,7 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\Api\Exception\ExceptionFailedException;
+use Shopware\Core\Framework\Api\Exception\ExpectationFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
@@ -20,6 +20,7 @@ use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\CurrencyHelper;
 use Lunar\Payment\Helpers\LogHelper as Logger;
+use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 
 /**
  * Manage payment actions on order transaction state change
@@ -87,7 +88,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
         foreach ($event->getIds() as $transactionId) {
             try {
                 $transaction = $this->orderTransaction = $this->orderHelper->getTransactionById($transactionId, $context);
-
+file_put_contents("/var/www/html/var/log/zzz.log", json_encode('CALLED ____ SUBSCRIBER', JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
                 /**
                  * Check payment method
                  */
@@ -109,19 +110,16 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                         $actionType = OrderHelper::CAPTURE_STATUS;
                         $dbTransactionPreviousState = OrderHelper::AUTHORIZE_STATUS;
                         $transactionType = OrderHelper::CAPTURE_STATUS;
-                        $amountToCheck = 'capturedAmount';
                         break;
                     case OrderHelper::TRANSACTION_REFUNDED:
                         $actionType = OrderHelper::REFUND_STATUS;
                         $dbTransactionPreviousState = OrderHelper::CAPTURE_STATUS;
                         $transactionType = OrderHelper::REFUND_STATUS;
-                        $amountToCheck = 'refundedAmount';
                         break;
                     case OrderHelper::TRANSACTION_VOIDED:
                         $actionType = OrderHelper::VOID_STATUS;
                         $dbTransactionPreviousState = OrderHelper::AUTHORIZE_STATUS;
                         $transactionType = OrderHelper::VOID_STATUS;
-                        $amountToCheck = 'voidedAmount';
                         break;
                 }
 
@@ -134,16 +132,17 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 $criteria->addFilter(new EqualsFilter('orderId', $orderId));
                 $criteria->addFilter(new EqualsFilter('transactionType',  $dbTransactionPreviousState));
 
-                $paymentTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
+                /** @var LunarTransaction $lunarTransaction */
+                $lunarTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
 
-                if (!$paymentTransaction) {
+                if (!$lunarTransaction) {
                     continue;
                 }
 
                 /** If arrive here, then it is an admin action. */
                 $isAdminAction = true;
 
-                $paymentTransactionId = $paymentTransaction->getTransactionId();
+                $lunarTransactionId = $lunarTransaction->getTransactionId();
 
                 /**
                  * Instantiate Api Client
@@ -153,7 +152,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                  */
                 $privateApiKey = $this->getApiKey($order);
                 $apiClient = new ApiClient($privateApiKey);
-                $fetchedTransaction = $apiClient->transactions()->fetch($paymentTransactionId);
+                $fetchedTransaction = $apiClient->payments()->fetch($lunarTransactionId);
 
                 if (!$fetchedTransaction) {
                     $errors[$transactionId][] = 'Fetch API transaction failed: no transaction with provided id';
@@ -162,12 +161,12 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
                 $totalPrice = $transaction->amount->getTotalPrice();
                 $currencyCode = $transaction->getOrder()->getCurrency()->isoCode;
-                $amountValue = (int) CurrencyHelper::getAmountInMinor($currencyCode, $totalPrice);
-
 
                 $transactionData = [
-                    'amount' => $amountValue,
-                    'currency' => $currencyCode,
+                    'amount' => [
+                        'currency' => $currencyCode,
+                        'decimal' => (string) $totalPrice,
+                    ],
                 ];
 
                 $result['successful'] = false;
@@ -178,57 +177,50 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                  */
                 if (
                     $this->isCaptureAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['pendingAmount'] !== 0
                 ) {
                     /**
                      * Capture.
                      */
-                    $result = $apiClient->transactions()->capture($paymentTransactionId, $transactionData);
+                    $result = $apiClient->payments()->capture($lunarTransactionId, $transactionData);
 
                 } elseif (
                     $this->isRefundAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['capturedAmount'] !== 0
                 ) {
                     /**
                      * Refund.
                      */
-                    $result = $apiClient->transactions()->refund($paymentTransactionId, $transactionData);
+                    $result = $apiClient->payments()->refund($lunarTransactionId, $transactionData);
 
                 } elseif (
                     $this->isVoidAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['pendingAmount'] !== 0
                 ) {
                     /**
                      * Void.
                      */
-                    $result = $apiClient->transactions()->void($paymentTransactionId, $transactionData);
+                    $result = $apiClient->payments()->cancel($lunarTransactionId, $transactionData);
 
                 } else  {
                     continue;
                 }
 
                 $this->logger->writeLog([strtoupper($transactionTechnicalName) . ' request data: ', $transactionData]);
-
-                if (true !== $result['successful']) {
-                    $this->logger->writeLog(['Error: ', $result]);
-                    $errors[$transactionId][] = 'Transaction API action was unsuccesfull';
-                    continue;
-                }
-
-                $transactionAmount = CurrencyHelper::getAmountInMajor($currencyCode, $result[$amountToCheck]);
+file_put_contents("/var/www/html/var/log/zzz.log", json_encode('$result', JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
+file_put_contents("/var/www/html/var/log/zzz.log", json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
+                // if (true !== $result['successful']) {
+                //     $this->logger->writeLog(['Error: ', $result]);
+                //     $errors[$transactionId][] = 'Transaction API action was unsuccesfull';
+                //     continue;
+                // }
 
                 $transactionData = [
                     [
                         'orderId' => $orderId,
-                        'transactionId' => $paymentTransactionId,
+                        'transactionId' => $lunarTransactionId,
                         'transactionType' => $transactionType,
                         'transactionCurrency' => $currencyCode,
                         'orderAmount' => $totalPrice,
-                        'transactionAmount' => $transactionAmount,
-                        'amountInMinor' => $result[$amountToCheck],
+                        'transactionAmount' => $totalPrice,
+                        'amountInMinor' => 0,
                         'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
                     ],
                 ];
@@ -255,13 +247,13 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 $criteria->addFilter(new EqualsFilter('transactionId', $transactionIdKey));
                 $criteria->addFilter(new EqualsFilter('transactionType',  $dbTransactionPreviousState));
 
-                $paymentTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
+                $lunarTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
 
                 // $this->stateMachineHistory->
             }
 
             $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            throw new ExceptionFailedException($errors);
+            throw new ExpectationFailedException($errors);
         }
     }
 

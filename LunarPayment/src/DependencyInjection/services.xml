@@ -10,15 +10,6 @@
             <tag name="shopware.entity.definition" entity="lunar_transaction"/>
         </service>
 
-        <!-- <service id="Lunar\Payment\Service\LunarPaymentHandler">
-            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument type="service" id="lunar_transaction.repository"/>
-            <argument type="service" id="order_transaction.repository" />
-            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
-            <tag name="shopware.payment.method.sync" />
-        </service> -->
-
         <!-- hosted checkout -->
         <service id="Lunar\Payment\Service\LunarHostedCheckoutHandler">
             <!-- <argument type="service" id="monolog.logger"/> -->
@@ -26,6 +17,9 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
             <argument type="service" id="state_machine_state.repository"/>
+            <argument type="service" id="lunar_transaction.repository"/>
+            <argument type="service" id="order.repository" />
+            <argument type="service" id="currency.repository" />
             <argument>%kernel.shopware_version%</argument>
             <tag name="shopware.payment.method.async"/>
         </service>
@@ -34,14 +28,6 @@
             <argument type="service" id="order.repository" />
             <argument type="service" id="order_transaction.repository" />
         </service>
-
-        <!-- <service id="Lunar\Payment\Subscriber\CheckoutConfirmSubscriber">
-            <argument type="service" id="Shopware\Core\Checkout\Cart\Order\OrderConverter"/>
-            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument>%kernel.shopware_version%</argument>
-            <tag name="kernel.event_subscriber"/>
-        </service> -->
 
         <service id="Lunar\Payment\Helpers\LogHelper"></service>
 
