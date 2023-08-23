@@ -40,10 +40,7 @@ class SettingsController extends AbstractController
     public function validateApiKeys(Request $request, Context $context): JsonResponse
     {
         return new JsonResponse([
-            'status'  =>  true,
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => [],
         ], 200);
     }
 
@@ -71,19 +68,14 @@ class SettingsController extends AbstractController
 
     //     if (!empty($this->errors)) {
     //         return new JsonResponse([
-    //             'status'  => empty($this->errors),
     //             'message' => 'Error',
-    //             'code'    => 0,
     //             'errors'=> $this->errors,
     //         ], 400);
     //     }
 
 
     //     return new JsonResponse([
-    //         'status'  =>  empty($this->errors),
     //         'message' => 'Success',
-    //         'code'    => 0,
-    //         'errors'  => $this->errors,
     //     ], 200);
     // }
 
@@ -215,18 +207,13 @@ class SettingsController extends AbstractController
 
     //     if (!empty($errors)) {
     //         return new JsonResponse([
-    //             'status'  => empty($errors),
     //             'message' => 'Error',
-    //             'code'    => 0,
     //             'errors'  => $errors,
     //         ], 400);
     //     }
 
     //     return new JsonResponse([
-    //         'status'  =>  empty($errors),
     //         'message' => 'Success',
-    //         'code'    => 0,
-    //         'errors'  => $errors,
     //         'data'    => $settingValue,
     //     ], 200);
     // }

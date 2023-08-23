@@ -65,18 +65,17 @@ class OrderTransactionController extends AbstractController
     }
 
     /**
-     * VOID / CANCEL
+     * CANCEL
      *
-     * @Route("/api/lunar/void", name="api.action.lunar.void", methods={"POST"})
+     * @Route("/api/lunar/cancel", name="api.action.lunar.cancel", methods={"POST"})
      */
-    public function void(Request $request, Context $context): JsonResponse
+    public function cancel(Request $request, Context $context): JsonResponse
     {
-        return $this->processPaymentAction($request, $context, 'void');
+        return $this->processPaymentAction($request, $context, 'cancel');
     }
 
 
     /**
-     * @TODO unify code with that from \Subscriber\OrderTransactionStateChangeSubscriber.php
      *
      */
     private function processPaymentAction(
@@ -86,14 +85,14 @@ class OrderTransactionController extends AbstractController
     ): JsonResponse {
 
         switch ($actionType) {
-            case OrderHelper::CAPTURE_STATUS:
-                $orderTransactionAction = OrderHelper::TRANSACTION_PAID;
+            case OrderHelper::CAPTURE:
+                $transactionAction = OrderHelper::TRANSACTION_PAID;
                 break;
-            case OrderHelper::REFUND_STATUS:
-                $orderTransactionAction = OrderHelper::TRANSACTION_REFUND;
+            case OrderHelper::REFUND:
+                $transactionAction = OrderHelper::TRANSACTION_REFUND;
                 break;
-            case OrderHelper::VOID_STATUS:
-                $orderTransactionAction = OrderHelper::TRANSACTION_VOID;
+            case OrderHelper::CANCEL:
+                $transactionAction = OrderHelper::TRANSACTION_CANCEL;
                 break;
         }
 
@@ -105,8 +104,11 @@ class OrderTransactionController extends AbstractController
 
             $lastOrderTransaction = $order->transactions->last();
 
-            /** Change order transaction state. */
-            $this->transactionStateHandler->{$orderTransactionAction}($lastOrderTransaction->id, $context);
+            /** 
+             * Change order transaction state.
+             * The event will be processed in Lunar\Payment\Subscriber\OrderTransactionStateChangeSubscriber
+             */
+            $this->transactionStateHandler->{$transactionAction}($lastOrderTransaction->id, $context);
 
         } catch (\Exception $e) {
             $errors[] = 'An exception occured. Please try again. If this persist please contact plugin developer.';
@@ -118,18 +120,13 @@ class OrderTransactionController extends AbstractController
 
         if (!empty($errors)) {
             return new JsonResponse([
-                'status'  => empty($errors),
                 'message' => 'Error',
-                'code'    => 0,
-                'errors'=> $errors ?? [],
+                'errors'=> $errors,
             ], 400);
         }
 
         return new JsonResponse([
-            'status'  =>  empty($errors),
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => $errors ?? [],
         ], 200);
     }
 
@@ -159,18 +156,13 @@ class OrderTransactionController extends AbstractController
 
         if (!empty($errors)) {
             return new JsonResponse([
-                'status'  =>  empty($errors),
                 'message' => 'Error',
-                'code'    => 0,
                 'errors'  => $errors,
             ], 404);
         }
 
         return new JsonResponse([
-            'status'  =>  empty($errors),
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => $errors,
             'transactions' => $lunarTransactions->getElements(),
         ], 200);
     }
