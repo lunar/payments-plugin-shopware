@@ -41,14 +41,14 @@
                     "authorize": "Authorize",
                     "capture": "Capture",
                     "refund": "Refund",
-                    "void": "Void (Cancel)",
+                    "cancel": "Cancel",
                     "default": ""
                 }
             },
             "actions": {
                 "captureButton": "Capture",
                 "refundButton": "Refund",
-                "voidButton": "Void (Cancel)",
+                "cancelButton": "Cancel",
                 "defaultButton": "Order is complete"
             },
             "notifications": {
@@ -62,9 +62,9 @@
                 "refundSuccessMessage": "The refund was successfully completed.",
                 "refundErrorTitle": "Refund Error!",
 
-                "voidSuccessTitle": "Void (cancel) success!",
-                "voidSuccessMessage": "Void (cancelation) of the payment was successful.",
-                "voidErrorTitle": "Void (cancel) Error!",
+                "cancelSuccessTitle": "Cancel success!",
+                "cancelSuccessMessage": "Payment cancellation was successful.",
+                "cancelErrorTitle": "Cancel Error!",
 
                 "couldNotRetrieveMessage": "The payment details could not be retrieved, please check the log files for more information.",
                 "paymentMissingError": "Payment could not be found",

@@ -6,4 +6,21 @@
     font-weight: bold;
 }
 
+.lunar-payment-detail th:nth-of-type(5) .sw-data-grid__cell-content,
+.lunar-payment-detail th:nth-of-type(6) .sw-data-grid__cell-content
+{
+    white-space: break-spaces;
+}
+
+/* .lunar-payment-detail tr td:nth-of-type(2) .sw-data-grid__cell-content,
+.lunar-payment-detail tr td:nth-of-type(3) .sw-data-grid__cell-content  */
+.lunar-payment-detail tr td .sw-data-grid__cell-content 
+{
+    font-size: 12px;
+}
+
+.lunar-payment-detail tr .sw-data-grid__cell-content 
+{
+    padding: 10px;
+}
 

@@ -24,14 +24,14 @@
         </sw-button-process>
 
         <sw-button-process
-            id="voidButton"
-            v-if="isVoidPossible"
+            id="cancelButton"
+            v-if="isCancelPossible"
             :disabled="false"
             :isLoading="isLoading"
             :processSuccess="isSuccessful"
-            @click="voidPayment"
+            @click="cancelPayment"
         >
-            {{ $tc("lunar-payment.paymentDetails.actions.voidButton") }}
+            {{ $tc("lunar-payment.paymentDetails.actions.cancelButton") }}
         </sw-button-process>
 
         <sw-button

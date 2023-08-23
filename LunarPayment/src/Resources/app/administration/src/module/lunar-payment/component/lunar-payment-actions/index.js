@@ -41,7 +41,7 @@ Component.register("lunar-payment-actions", {
             return 'capture' === this.lastTransactionType;
         },
 
-        isVoidPossible() {
+        isCancelPossible() {
             return 'authorize' === this.lastTransactionType;
         },
 
@@ -110,15 +110,15 @@ Component.register("lunar-payment-actions", {
                     this.isLoading = false;
                 });
         },
-        // simple name "void" just not work
-        voidPayment() {
+
+        cancelPayment() {
             this.isLoading = true;
 
-            this.LunarPaymentService.voidPayment(this.paymentData)
+            this.LunarPaymentService.cancelPayment(this.paymentData)
                 .then(() => {
                     this.createNotificationSuccess({
-                        title: this.$tc("lunar-payment.paymentDetails.notifications.voidSuccessTitle"),
-                        message: this.$tc("lunar-payment.paymentDetails.notifications.voidSuccessMessage"),
+                        title: this.$tc("lunar-payment.paymentDetails.notifications.cancelSuccessTitle"),
+                        message: this.$tc("lunar-payment.paymentDetails.notifications.cancelSuccessMessage"),
                     });
 
                     this.isSuccessful = true;
@@ -130,7 +130,7 @@ Component.register("lunar-payment-actions", {
 
                     errors.forEach((errorMessage) => {
                         this.createNotificationError({
-                            title: this.$tc("lunar-payment.paymentDetails.notifications.voidErrorTitle"),
+                            title: this.$tc("lunar-payment.paymentDetails.notifications.cancelErrorTitle"),
                             message: errorMessage,
                         });
                     })
