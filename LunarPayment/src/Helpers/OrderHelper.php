@@ -7,6 +7,7 @@ use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\System\StateMachine\Transition;
+use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
@@ -27,30 +28,26 @@ class OrderHelper
     public const TRANSACTION_PAID = OrderTransactionStates::STATE_PAID;
     public const TRANSACTION_REFUND = 'refund';
     public const TRANSACTION_REFUNDED = OrderTransactionStates::STATE_REFUNDED;
-    public const TRANSACTION_VOID = 'cancel';
-    public const TRANSACTION_VOIDED = OrderTransactionStates::STATE_CANCELLED;
+    public const TRANSACTION_CANCEL = 'cancel';
+    public const TRANSACTION_CANCELLED = OrderTransactionStates::STATE_CANCELLED;
     public const TRANSACTION_FAILED = OrderTransactionStates::STATE_FAILED;
 
     /**
      * Plugin transactions statuses
      */
-    public const AUTHORIZE_STATUS = 'authorize';
-    public const CAPTURE_STATUS = 'capture';
-    public const REFUND_STATUS = 'refund';
-    public const VOID_STATUS = 'void';
-    public const FAILED_STATUS = 'failed';
+    public const AUTHORIZE = 'authorize';
+    public const CAPTURE = 'capture';
+    public const REFUND = 'refund';
+    public const CANCEL = 'cancel';
+    public const FAILED = 'failed';
 
-    /** @var EntityRepository */
-    private $orderRepository;
-
-    /** @var EntityRepository */
-    private $orderTransactionRepository;
 
     public function __construct(
-                                EntityRepository $orderRepository,
-                                EntityRepository $orderTransactionRepository
-    )
-    {
+        private StateMachineRegistry $stateMachineRegistry,
+        private EntityRepository $orderRepository,
+        private EntityRepository $orderTransactionRepository
+    ) {
+        $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->orderTransactionRepository = $orderTransactionRepository;
     }
@@ -100,39 +97,14 @@ class OrderHelper
     /**
      *
      */
-    public function getTransactionById(string $transactionId, Context $context): ?OrderTransactionEntity
+    public function getOrderTransactionById(string $id, Context $context): ?OrderTransactionEntity
     {
-        if (mb_strlen($transactionId, '8bit') === 16) {
-            $transactionId = Uuid::fromBytesToHex($transactionId);
+        if (mb_strlen($id, '8bit') === 16) {
+            $id = Uuid::fromBytesToHex($id);
         }
 
-        $criteria = $this->getTransactionCriteria();
-        $criteria->addFilter(new EqualsFilter('id', $transactionId));
-
-        return $this->orderTransactionRepository->search($criteria, $context)->first();
-    }
-
-    /**
-     *
-     */
-    private function getTransactionCriteria(): Criteria
-    {
         $criteria = new Criteria();
-        $criteria->addAssociation('order');
-        $criteria->addAssociation('order.currency');
-        $criteria->addAssociation('order.lineItems');
-        $criteria->addAssociation('order.deliveries');
-        $criteria->addAssociation('paymentMethod');
-
-        return $criteria;
-    }
-
-    /**
-     *
-     */
-    public function getOrderTransaction(string $orderTransactionId, Context $context): ?OrderTransactionEntity
-    {
-        $criteria = new Criteria([$orderTransactionId]);
+        $criteria->addFilter(new EqualsFilter('id', $id));
         $criteria->addAssociations([
             'order',
             'order.currency',
@@ -147,46 +119,32 @@ class OrderHelper
     /**
      *
      */
-    public static function getTransactionStatuses()
+    public function changeOrderState($orderId, $actionType, $context)
     {
-        return [
-           self::AUTHORIZE_STATUS,
-           self::CAPTURE_STATUS,
-           self::REFUND_STATUS,
-           self::VOID_STATUS,
-           self::FAILED_STATUS,
-        ];
-    }
-
-    /**
-     *
-     */
-    public static function changeOrderState($orderId, $actionType, $context, $stateMachineRegistry)
-    {
-        switch (strtolower($actionType)) {
-            case self::CAPTURE_STATUS:
-                $stateMachineRegistry->transition(new Transition(
-                    OrderDefinition::ENTITY_NAME,
-                    $orderId,
-                    'process',
-                    'stateId'
-                ), $context);
+        switch ($actionType) {
+            case self::CAPTURE:
+                $this->stateMachineRegistry->transition(
+                    new Transition(
+                        OrderDefinition::ENTITY_NAME,
+                        $orderId, 'process', 'stateId'
+                    ), $context
+                );
                 break;
-            case self::REFUND_STATUS:
-                $stateMachineRegistry->transition(new Transition(
-                    OrderDefinition::ENTITY_NAME,
-                    $orderId,
-                    'complete',
-                    'stateId'
-                ), $context);
+            case self::REFUND:
+                $this->stateMachineRegistry->transition(
+                    new Transition(
+                        OrderDefinition::ENTITY_NAME,
+                        $orderId, 'complete', 'stateId'
+                    ), $context
+                );
                 break;
-            case self::VOID_STATUS:
-                $stateMachineRegistry->transition(new Transition(
-                    OrderDefinition::ENTITY_NAME,
-                    $orderId,
-                    'cancel',
-                    'stateId'
-                ), $context);
+            case self::CANCEL:
+                $this->stateMachineRegistry->transition(
+                    new Transition(
+                        OrderDefinition::ENTITY_NAME,
+                        $orderId, 'cancel', 'stateId'
+                    ), $context
+                );
                 break;
         }
     }

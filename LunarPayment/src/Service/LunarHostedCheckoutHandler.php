@@ -42,8 +42,8 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
     private const TEST_REMOTE_URL = 'https://hosted-checkout-git-develop-lunar-app.vercel.app/?id=';
 
     private const FINALIZED_ORDER_TRANSACTION_STATES = [
-        OrderTransactionStates::STATE_PAID,
-        OrderTransactionStates::STATE_AUTHORIZED,
+        OrderHelper::TRANSACTION_AUTHORIZED,
+        OrderHelper::TRANSACTION_PAID,
     ];
 
     private ApiClient $lunarApiClient;
@@ -61,22 +61,24 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
 
     public function __construct(
         // private LoggerInterface $logger,
-        private Logger $logger,
         private SystemConfigService $systemConfigService,
         private OrderTransactionStateHandler $orderTransactionStateHandler,
         private EntityRepository $stateMachineStateRepository,
         private EntityRepository $lunarTransactionRepository,
         private EntityRepository $orderRepository,
         private EntityRepository $currencyRepository,
-        private string $shopwareVersion
+        private string $shopwareVersion,
+        private Logger $logger,
+        private OrderHelper $orderHelper
     ) {
-        $this->logger = $logger;
         $this->orderTransactionStateHandler = $orderTransactionStateHandler;
         $this->stateMachineStateRepository = $stateMachineStateRepository;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
         $this->orderRepository = $orderRepository;
         $this->currencyRepository = $currencyRepository;
         $this->shopwareVersion = $shopwareVersion;
+        $this->logger = $logger;
+        $this->orderHelper = $orderHelper;
     }
 
     /**
@@ -215,11 +217,10 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             [
                 'orderId' => $this->order->getId(),
                 'transactionId' => $paymentIntentId,
-                'transactionType' => OrderHelper::AUTHORIZE_STATUS,
+                'transactionType' => OrderHelper::AUTHORIZE,
                 'transactionCurrency' => $orderCurrency,
                 'orderAmount' => $transactionAmount,
                 'transactionAmount' => $transactionAmount,
-                'amountInMinor' => 0,
                 'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
             ],
         ];
@@ -232,9 +233,10 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         ];
 
         if ($this->isInstantMode) {          
+
             try {
-                // $apiTransactionResponse = $this->lunarApiClient->payments()->capture($paymentIntentId, $params);
                 $this->lunarApiClient->payments()->capture($paymentIntentId, $params);
+
             } catch (LunarApiException $e) {
                 throw new AsyncPaymentFinalizeException($orderTransactionId, $e->getMessage());
             }
@@ -243,14 +245,22 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             $this->orderTransactionStateHandler->paid($orderTransactionId, $context);
 
             /** Change type of transaction for data to be saved in DB cutom table. */
-            $transactionData[0]['transactionType'] = OrderHelper::CAPTURE_STATUS;
+            $transactionData[0]['transactionType'] = OrderHelper::CAPTURE;
 
         } else {
-            $this->orderTransactionStateHandler->authorize($orderTransactionId, $context);            
+            $this->orderTransactionStateHandler->authorize($orderTransactionId, $context); 
         }
 
         /** Insert transaction data to custom table. */
         $this->lunarTransactionRepository->create($transactionData, $context);
+
+        /** 
+         * Change order state in instant mode.
+         * We run here to have already inserted lunar transaction in custom table
+         */
+        $this->isInstantMode 
+            ? $this->orderHelper->changeOrderState($this->order->getId(), OrderHelper::CAPTURE, $context) 
+            : null;
     }
 
     /**
@@ -350,7 +360,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
                 'customFields' => $customFields,
             ]
         ], $context);
-        // ], Context::createDefaultContext()); // if we pass current context, updating not working
     }
 
     /**
