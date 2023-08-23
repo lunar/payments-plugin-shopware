@@ -5,7 +5,6 @@ namespace Lunar\Payment\Migration;
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
-use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
 
 class Migration1655746819CreateTransactionsTable extends MigrationStep
@@ -21,14 +20,12 @@ class Migration1655746819CreateTransactionsTable extends MigrationStep
      */
     public function update(Connection $connection): void
     {
-        $transactionTypes = OrderHelper::getTransactionStatuses();
-
         $sql = '
-            CREATE TABLE IF NOT EXISTS ' . PluginHelper::VENDOR_NAME  . '_transaction (
+            CREATE TABLE IF NOT EXISTS lunar_transaction (
                 `id` BINARY(16) NOT NULL PRIMARY KEY,
                 `order_id` BINARY(16) NOT NULL,
                 `transaction_id` VARCHAR(50) NOT NULL,
-                `transaction_type` CHAR(20) NOT NULL COMMENT "' . implode(', ', $transactionTypes) . '",
+                `transaction_type` CHAR(20) NOT NULL,
                 `transaction_currency` CHAR(5) NOT NULL,
                 `order_amount` DECIMAL(15,4) NOT NULL,
                 `transaction_amount` DECIMAL(15,4) NOT NULL,

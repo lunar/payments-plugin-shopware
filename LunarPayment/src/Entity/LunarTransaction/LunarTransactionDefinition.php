@@ -58,8 +58,6 @@ class LunarTransactionDefinition extends EntityDefinition
 
             (new FloatField('transaction_amount', 'transactionAmount'))->addFlags(new Required()),
 
-            (new IntField('amount_in_minor', 'amountInMinor'))->addFlags(new Required()),
-
             /** Foreign key on Orders */
             (new FkField('order_id', 'orderId', OrderDefinition::class))->addFlags(new Required()),
 

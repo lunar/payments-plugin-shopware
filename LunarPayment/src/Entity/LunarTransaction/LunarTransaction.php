@@ -13,18 +13,11 @@ class LunarTransaction extends Entity
     use EntityIdTrait;
 
     protected string $orderId;
-
     protected string $transactionId;
-
     protected string $transactionType;
-
     protected string $transactionCurrency;
-
     protected float $orderAmount;
-
     protected float $transactionAmount;
-
-    protected int $amountInMinor;
 
     /**
      * Get/Set orderId
@@ -96,17 +89,5 @@ class LunarTransaction extends Entity
     public function setTransactionAmount($transactionAmount): void
     {
         $this->transactionAmount = $transactionAmount;
-    }
-
-    /**
-     * Get/Set amountInMinor
-     */
-    public function getAmountInMinort(): float
-    {
-        return $this->amountInMinor;
-    }
-    public function setAmountInMinor($amountInMinor): void
-    {
-        $this->amountInMinor = $amountInMinor;
     }
 }
