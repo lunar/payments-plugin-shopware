@@ -75,7 +75,7 @@ class LunarPayment extends Plugin
      */
     public function uninstall(UninstallContext $context): void
     {
-        // $this->setPaymentMethodIsActive(false, $context->getContext());
+        $this->setPaymentMethodsActive(false, $context->getContext());
 
         parent::uninstall($context);
 
@@ -87,6 +87,15 @@ class LunarPayment extends Plugin
         $connection->executeUpdate('DROP TABLE IF EXISTS `' . 'lunar_transaction`');
     }
 
+    /**
+     * DEACTIVATE
+     */
+    public function deactivate(DeactivateContext $context): void
+    {
+        $this->setPaymentMethodsActive(false, $context->getContext());
+        parent::deactivate($context);
+    }
+    
     /**
      *
      */
@@ -194,12 +203,28 @@ class LunarPayment extends Plugin
     }
 
     /**
+     *
+     */
+    private function setPaymentMethodsActive(bool $active, Context $context): void
+    {
+        /** @var EntityRepository $paymentRepository */
+        $paymentRepository = $this->container->get('payment_method.repository');
+
+        foreach (PluginHelper::LUNAR_PAYMENT_METHODS as $paymentMethodUuid => $paymentMethod) {
+            $paymentRepository->update([
+                [
+                    'id' => $paymentMethodUuid,
+                    'active' => $active,
+                ]
+            ], $context);
+        }
+    }
+
+    /**
      * In case we need this
      */
     /** ACTIVATE */
     public function activate(ActivateContext $context): void {}
-    /** DEACTIVATE */
-    public function deactivate(DeactivateContext $context): void {}
     /** POST-INSTALL */
     public function postInstall(InstallContext $installContext): void {}
     /** POST_UPDATE */
