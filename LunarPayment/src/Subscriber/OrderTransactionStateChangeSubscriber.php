@@ -223,7 +223,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
     {
         $salesChannelId = $order->getSalesChannelId();
 
-        $configPath = self::CONFIG_PATH . $this->paymentMethodCode . '.';
+        $configPath = self::CONFIG_PATH . $this->paymentMethodCode;
 
         $transactionMode = $this->systemConfigService->get($configPath . 'TransactionMode', $salesChannelId);
 

@@ -92,7 +92,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->orderTransaction = $this->paymentTransaction->getOrderTransaction();
         $this->order = $this->paymentTransaction->getOrder();
         
-        $paymentMethodId = $this->orderTransaction->getPaymentMethodId();
+        $paymentMethodId = $this->orderTransaction->getPaymentMethodId();     
         $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$paymentMethodId]['code'];
         
         $this->isInstantMode = 'instant' === $this->getSalesChannelConfig('CaptureMode');
@@ -477,7 +477,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
      */
     private function getSalesChannelConfig(string $key)
     {
-        $configPath = PluginHelper::PLUGIN_CONFIG_PATH . $this->paymentMethodCode . '.';
+        $configPath = PluginHelper::PLUGIN_CONFIG_PATH . $this->paymentMethodCode;
         return $this->systemConfigService->get($configPath . $key, $this->salesChannelContext->getSalesChannelId());
     }
 }
