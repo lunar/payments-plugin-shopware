@@ -20,10 +20,9 @@ class Migration1692786254UpdateTransactionsTable extends MigrationStep
     public function update(Connection $connection): void
     {
         $connection->executeStatement(
-            'ALTER TABLE lunar_transaction 
-            ADD payment_method 
-            AFTER amount_in_minor
-            VARCHAR(255) NOT NULL;
+            'ALTER TABLE lunar_transaction
+          ADD payment_method VARCHAR(255) NOT NULL
+          AFTER transaction_amount
         ');
         $connection->executeStatement('ALTER TABLE lunar_transaction DROP amount_in_minor;');
     }
