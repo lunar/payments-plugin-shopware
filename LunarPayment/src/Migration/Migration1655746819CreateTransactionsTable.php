@@ -5,7 +5,6 @@ namespace Lunar\Payment\Migration;
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
-use Lunar\Payment\Helpers\PluginHelper;
 
 class Migration1655746819CreateTransactionsTable extends MigrationStep
 {

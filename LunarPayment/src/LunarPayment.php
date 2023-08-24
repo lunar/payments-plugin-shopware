@@ -16,7 +16,6 @@ if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
 
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\Plugin\Context\UpdateContext;
 use Shopware\Core\Framework\Plugin\Util\PluginIdProvider;
 use Shopware\Core\Framework\Plugin\Context\InstallContext;
@@ -47,10 +46,10 @@ class LunarPayment extends Plugin
      */
     public function build(ContainerBuilder $container): void
     {
+        parent::build($container);
+
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/DependencyInjection'));
         $loader->load('services.xml');
-
-        parent::build($container);
     }
 
     /**
@@ -58,17 +57,25 @@ class LunarPayment extends Plugin
      */
     public function install(InstallContext $context): void
     {
-        parent::install($context);
+        $this->upsertPaymentMethod($context->getContext());
 
-        $this->addPaymentMethod($context->getContext());
-
-        /** Defaults for multi-select field "acceptedCards". */
+        /** Config defaults */
         $config = $this->container->get(SystemConfigService::class);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'acceptedCards', PluginHelper::ACCEPTED_CARDS);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'transactionMode', PluginHelper::TRANSACTION_MODE);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'captureMode', PluginHelper::CAPTURE_MODE);
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'shopTitle', $config->get('core.basicInformation.shopName'));
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'description', PluginHelper::PAYMENT_METHOD_DESCRIPTION);
+
+        parent::install($context);
+    }
+
+    /** UPDATE */
+    public function update(UpdateContext $context): void
+    {
+        $this->upsertPaymentMethod($context->getContext());
+
+        parent::update($context);
     }
 
     /**
@@ -85,7 +92,7 @@ class LunarPayment extends Plugin
         }
 
         $connection = $this->container->get(Connection::class);
-        $connection->executeUpdate('DROP TABLE IF EXISTS `' . PluginHelper::VENDOR_NAME . '_transactions`');
+        $connection->executeUpdate('DROP TABLE IF EXISTS `' . 'lunar_transaction`');
     }
 
     /**
@@ -94,6 +101,7 @@ class LunarPayment extends Plugin
     public function activate(ActivateContext $context): void
     {
         $this->setPaymentMethodIsActive(true, $context->getContext());
+        
         parent::activate($context);
     }
 
@@ -103,47 +111,46 @@ class LunarPayment extends Plugin
     public function deactivate(DeactivateContext $context): void
     {
         $this->setPaymentMethodIsActive(false, $context->getContext());
+
         parent::deactivate($context);
     }
 
     /**
      *
      */
-    private function addPaymentMethod(Context $context): void
-    {
-        $paymentMethodExists = $this->getPaymentMethodId();
-
-        if ($paymentMethodExists) {
-            return;
-        }
-
-        /** @var PluginIdProvider $pluginIdProvider */
-        $pluginIdProvider = $this->container->get(PluginIdProvider::class);
-        $pluginId = $pluginIdProvider->getPluginIdByBaseClass(get_class($this), $context);
-        $languageRepo = $this->container->get('language.repository');
-        $languageEN = $languageRepo->search((new Criteria())->addFilter(new EqualsFilter('name','English')), Context::createDefaultContext())->first()->getId();
-        $languageDE = $languageRepo->search((new Criteria())->addFilter(new EqualsFilter('name','Deutsch')), Context::createDefaultContext())->first()->getId();
-
+    private function upsertPaymentMethod(Context $context): void
+    {        
         $paymentMethodUuid = PluginHelper::PAYMENT_METHOD_UUID;
         $paymentMethodName = PluginHelper::PAYMENT_METHOD_NAME;
         $paymentMethodDescription = PluginHelper::PAYMENT_METHOD_DESCRIPTION;
 
-        $paymentMethodData = [
-            'id' => $paymentMethodUuid,
-            'handlerIdentifier' => LunarHostedCheckoutHandler::class,
-            'pluginId' => $pluginId,
-            'afterOrderEnabled' => false, // disable by default after order actions
-            'name' => $paymentMethodName,
-            'description' => $paymentMethodDescription,
-        ];
+         /** @var PluginIdProvider $pluginIdProvider */
+        $pluginIdProvider = $this->container->get(PluginIdProvider::class);
+        $pluginId = $pluginIdProvider->getPluginIdByBaseClass(get_class($this), $context);
 
         /** @var EntityRepository $paymentRepository */
         $paymentRepository = $this->container->get('payment_method.repository');
         /** @var EntityRepository $translationRepository */
         $translationRepository = $this->container->get('payment_method_translation.repository');
 
-        $paymentRepository->upsert([$paymentMethodData], $context);
+        $paymentRepository->upsert([
+            [
+                'id' => $paymentMethodUuid,
+                'handlerIdentifier' => LunarHostedCheckoutHandler::class,
+                'pluginId' => $pluginId,
+                'afterOrderEnabled' => false, // disable by default after order actions
+                'name' => $paymentMethodName,
+                'description' => $paymentMethodDescription,
+                'position' => 0,
+            ]
+        ], $context);
 
+        /**
+         * Translations
+         */
+        $languageRepo = $this->container->get('language.repository');
+        $languageEN = $languageRepo->search((new Criteria())->addFilter(new EqualsFilter('name','English')), Context::createDefaultContext())->first()->getId();
+        $languageDE = $languageRepo->search((new Criteria())->addFilter(new EqualsFilter('name','Deutsch')), Context::createDefaultContext())->first()->getId();
 
         $translationRepository->upsert([
             [
@@ -160,6 +167,9 @@ class LunarPayment extends Plugin
             ]
         ], $context);
 
+        /**
+         * Attach to sales channels
+         */
         $this->attachPaymentMethodToSalesChannels($context);
     }
 
@@ -169,32 +179,14 @@ class LunarPayment extends Plugin
     private function setPaymentMethodIsActive(bool $active, Context $context): void
     {
         /** @var EntityRepository $paymentRepository */
-        $paymentRepository = $this->container->get('payment_method.repository');
+        $paymentMethodRepository = $this->container->get('payment_method.repository');
 
-        $paymentMethodId = $this->getPaymentMethodId();
-
-        if (!$paymentMethodId) {
-            return;
-        }
-
-        $paymentMethod = [
-            'id' => $paymentMethodId,
-            'active' => $active,
-        ];
-
-        $paymentRepository->update([$paymentMethod], $context);
-    }
-
-    /**
-     *
-     */
-    private function getPaymentMethodId(): ?string
-    {
-        /** @var EntityRepository $paymentRepository */
-        $paymentRepository = $this->container->get('payment_method.repository');
-
-        $paymentCriteria = (new Criteria())->addFilter(new EqualsFilter('handlerIdentifier', LunarPaymentHandler::class));
-        return $paymentRepository->searchIds($paymentCriteria, Context::createDefaultContext())->firstId();
+        $paymentMethodRepository->update([
+            [
+                'id' => PluginHelper::PAYMENT_METHOD_UUID,
+                'active' => $active,
+            ]
+        ], $context);
     }
 
     /**
@@ -210,10 +202,10 @@ class LunarPayment extends Plugin
 
         $channels = $salesChannelRepository->searchIds(new Criteria(), $context);
 
-        foreach ($channels->getIds() as $channel) {
+        foreach ($channels->getIds() as $channelId) {
             $data = [
-                'salesChannelId'  => $channel,
-                'paymentMethodId' => $this->getPaymentMethodId(),
+                'salesChannelId'  => $channelId,
+                'paymentMethodId' => PluginHelper::PAYMENT_METHOD_UUID,
             ];
 
             $salesChannelPaymentMethodRepository->upsert([$data], $context);
@@ -222,21 +214,8 @@ class LunarPayment extends Plugin
     }
 
     /**
-     *
-     */
-    private function findPaymentMethodEntity(string $id, Context $context): ?PaymentMethodEntity
-    {
-        /** @var EntityRepository $paymentMethodRepository */
-        $paymentMethodRepository = $this->container->get('payment_method.repository');
-
-        return $paymentMethodRepository->search(new Criteria([$id]), $context)->first();
-    }
-
-    /**
      * In case we need this
      */
-    /** UPDATE */
-    public function update(UpdateContext $context): void {}
     /** POST-INSTALL */
     public function postInstall(InstallContext $installContext): void {}
     /** POST_UPDATE */

@@ -5,7 +5,6 @@ namespace Lunar\Payment\Migration;
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
-use Lunar\Payment\Helpers\PluginHelper;
 
 class Migration1692786254UpdateTransactionsTable extends MigrationStep
 {
@@ -20,14 +19,14 @@ class Migration1692786254UpdateTransactionsTable extends MigrationStep
      */
     public function update(Connection $connection): void
     {
-        $connection->executeStatement('ALTER TABLE lunar_transaction DROP COLUMN amount_in_minor;');
+        $connection->executeStatement('ALTER TABLE lunar_transaction DROP amount_in_minor;');
         $connection->executeStatement(
             'ALTER TABLE lunar_transaction 
             ADD 
-            CONSTRAINT lunar_transaction_order_id
+            CONSTRAINT fk_lunar_transaction_order_id
             FOREIGN KEY (order_id) 
             REFERENCES `order`(id)
-            ON DELETE cascade;
+            ON DELETE CASCADE;
         ');
     }
 
