@@ -57,6 +57,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
     private array $args = [];
     private bool $testMode = false;
     private string $publicKey = '';
+    private string $paymentMethodCode;
 
 
     public function __construct(
@@ -90,15 +91,18 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->paymentTransaction = $paymentTransaction;
         $this->orderTransaction = $this->paymentTransaction->getOrderTransaction();
         $this->order = $this->paymentTransaction->getOrder();
-        $this->isInstantMode = 'instant' === $this->getSalesChannelConfig('captureMode');
         
-        $this->testMode = 'test' == $this->getSalesChannelConfig('transactionMode');
+        $paymentMethodId = $this->orderTransaction->getPaymentMethodId();
+        $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$paymentMethodId]['code'];
+        
+        $this->isInstantMode = 'instant' === $this->getSalesChannelConfig('CaptureMode');
+        $this->testMode = 'test' == $this->getSalesChannelConfig('TransactionMode');
         if ($this->testMode) {
-            $this->publicKey =  $this->getSalesChannelConfig('testModePublicKey');
-            $privateKey =  $this->getSalesChannelConfig('testModeAppKey');
+            $this->publicKey =  $this->getSalesChannelConfig('TestModePublicKey');
+            $privateKey =  $this->getSalesChannelConfig('TestModeAppKey');
         } else {
-            $this->publicKey = $this->getSalesChannelConfig('liveModePublicKey');
-            $privateKey = $this->getSalesChannelConfig('liveModeAppKey');
+            $this->publicKey = $this->getSalesChannelConfig('LiveModePublicKey');
+            $privateKey = $this->getSalesChannelConfig('LiveModeAppKey');
         }
 
         /** 
@@ -291,16 +295,11 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             ];
         }
 
-        // @TODO remove hardcoded value
-        // $preferredPaymentMethod = $this->paymentMethodCode == PluginHelper::PAYMENT_METHOD_NAME ? 'card' : 'mobilePay';
-        $preferredPaymentMethod = 'card'; 
-
-
         $this->args = [
 			'integration' => [
 				'key' => $this->publicKey,
-                'name' => $this->getSalesChannelConfig('shopTitle'),
-                'logo' =>  $this->getSalesChannelConfig('logoURL'),
+                'name' => $this->getSalesChannelConfig('ShopTitle'),
+                'logo' =>  $this->getSalesChannelConfig('LogoURL'),
 			],
 			'amount' => [
                 'currency' => $currency,
@@ -323,13 +322,13 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
 				'lunarPluginVersion' => PluginHelper::getPluginVersion(),
             ],
 			'redirectUrl' => sprintf('%s', $this->paymentTransaction->getReturnUrl()),
-			'preferredPaymentMethod' => $preferredPaymentMethod,
+			'preferredPaymentMethod' => $this->paymentMethodCode,
 		];
 
-        if ($this->getSalesChannelConfig('configurationId')) {
+        if ($this->getSalesChannelConfig('ConfigurationID')) {
             $this->args['mobilePayConfiguration'] = [
-                'configurationID' => $this->getSalesChannelConfig('configurationId'),
-                'logo' => $this->getSalesChannelConfig('logoURL'),
+                'configurationID' => $this->getSalesChannelConfig('ConfigurationID'),
+                'logo' => $this->getSalesChannelConfig('LogoURL'),
             ];
         }
 
@@ -478,6 +477,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
      */
     private function getSalesChannelConfig(string $key)
     {
-        return $this->systemConfigService->get(PluginHelper::PLUGIN_CONFIG_PATH . $key, $this->salesChannelContext->getSalesChannelId());
+        $configPath = PluginHelper::PLUGIN_CONFIG_PATH . $this->paymentMethodCode . '.';
+        return $this->systemConfigService->get($configPath . $key, $this->salesChannelContext->getSalesChannelId());
     }
 }

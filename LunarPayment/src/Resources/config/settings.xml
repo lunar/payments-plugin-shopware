@@ -4,11 +4,11 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
 
     <card>
-        <title>Lunar Configuration</title>
-        <name>lunar_configuration</name>
+        <title>Card - Configuration</title>
+        <name>lunar_card_configuration</name>
 
         <input-field type="single-select">
-            <name>transactionMode</name>
+            <name>cardTransactionMode</name>
             <label>Transaction Mode</label>
             <options>
                 <option>
@@ -23,36 +23,35 @@
         </input-field>
 
         <input-field>
-            <name>testModeAppKey</name>
+            <name>cardTestModeAppKey</name>
             <label>Test mode App Key</label>
         </input-field>
         <input-field>
-            <name>testModePublicKey</name>
+            <name>cardTestModePublicKey</name>
             <label>Test mode Public Key</label>
         </input-field>
 
         <input-field>
-            <name>liveModeAppKey</name>
+            <name>cardLiveModeAppKey</name>
             <label>App Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
         <input-field>
-            <name>liveModePublicKey</name>
+            <name>cardLiveModePublicKey</name>
             <label>Public Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
 
         <input-field>
-            <name>logoURL</name>
+            <name>cardLogoURL</name>
             <label>Logo URL</label>
             <helpText>URL must start with "https://", and the image must have PNG, JPG, JPEG extension.</helpText>
-            <required>true</required>
         </input-field>
 
         <input-field type="single-select">
-            <name>captureMode</name>
+            <name>cardCaptureMode</name>
             <label>Capture Mode</label>
-            <helpText>In Delayed mode the capture will be done manually from admin panel. In Instant mode the capture will be done automatically</helpText>
+            <helpText>If you deliver your product instantly (e.g. a digital product), choose Instant mode. If not, use Delayed.</helpText>
             <options>
                 <option>
                     <id>delayed</id>
@@ -66,17 +65,17 @@
         </input-field>
 
         <input-field>
-            <name>shopTitle</name>
+            <name>cardShopTitle</name>
             <label>Shop title</label>
         </input-field>
-    </card>
 
-    <card>
-        <title>Miscellaneous</title>
-        <name>payment_miscellaneous</name>
+        <input-field>
+            <name>cardDescription</name>
+            <label>Description</label>
+        </input-field>
 
         <input-field type="multi-select">
-            <name>acceptedCards</name>
+            <name>cardAcceptedCards</name>
             <label>Accepted cards</label>
             <options>
                 <option>
@@ -98,7 +97,92 @@
             </options>
         </input-field>
 
-        <!-- <input-field type="single-select">
+    </card>
+
+    <card>
+        <title>Mobilepay - Configuration</title>
+        <name>lunar_mobilepay_configuration</name>
+
+        <input-field type="single-select">
+            <name>mobilepayTransactionMode</name>
+            <label>Transaction Mode</label>
+            <options>
+                <option>
+                    <id>live</id>
+                    <name>Live mode</name>
+                </option>
+                <option>
+                    <id>test</id>
+                    <name>Test mode</name>
+                </option>
+            </options>
+        </input-field>
+
+        <input-field>
+            <name>mobilepayTestModeAppKey</name>
+            <label>Test mode App Key</label>
+        </input-field>
+        <input-field>
+            <name>mobilepayTestModePublicKey</name>
+            <label>Test mode Public Key</label>
+        </input-field>
+
+        <input-field>
+            <name>mobilepayLiveModeAppKey</name>
+            <label>App Key</label>
+            <helpText>Get it from your Lunar dashboard</helpText>
+        </input-field>
+        <input-field>
+            <name>mobilepayLiveModePublicKey</name>
+            <label>Public Key</label>
+            <helpText>Get it from your Lunar dashboard</helpText>
+        </input-field>
+
+        <input-field>
+            <name>mobilepayConfigurationID</name>
+            <label>Mobilepay Configuration ID</label>
+            <helpText>Email onlinepayments@lunar.app to get it</helpText>
+        </input-field>        
+        
+        <input-field>
+            <name>mobilepayLogoURL</name>
+            <label>Logo URL</label>
+            <helpText>URL must start with "https://", and the image must have PNG, JPG, JPEG extension.</helpText>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>mobilepayCaptureMode</name>
+            <label>Capture Mode</label>
+            <helpText>If you deliver your product instantly (e.g. a digital product), choose Instant mode. If not, use Delayed.</helpText>
+            <options>
+                <option>
+                    <id>delayed</id>
+                    <name>Delayed</name>
+                </option>
+                <option>
+                    <id>instant</id>
+                    <name>Instant</name>
+                </option>
+            </options>
+        </input-field>
+
+        <input-field>
+            <name>mobilepayShopTitle</name>
+            <label>Shop title</label>
+        </input-field>
+
+        <input-field>
+            <name>mobilepayDescription</name>
+            <label>Description</label>
+        </input-field>
+
+    </card>
+
+    <!-- <card>
+        <title>Miscellaneous</title>
+        <name>lunar_miscellaneous</name>
+
+        <input-field type="single-select">
             <name>showLunarTransactionInOrderList</name>
             <label>Show Lunar transaction ID in order list (as separate column)</label>
             <options>
@@ -111,7 +195,7 @@
                     <name>Show</name>
                 </option>
             </options>
-        </input-field> -->
-    </card>
+        </input-field>
+    </card> -->
 
 </config>

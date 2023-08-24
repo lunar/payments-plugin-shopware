@@ -27,7 +27,9 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
  */
 class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 {
-    public const CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
+    private const CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
+
+    private string $paymentMethodCode;
 
     public function __construct(
         private EntityRepository $stateMachineHistory,
@@ -67,14 +69,15 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 /** @var OrderTransactionEntity $transaction */
                 $order = $transaction->getOrder();
                 $orderId = $order->getId();
-
-                
+             
                 /**
                  * Check payment method
                  */
-                if (PluginHelper::PAYMENT_METHOD_UUID !== $transaction->paymentMethodId) {
+                if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$transaction->paymentMethodId])) {
                     continue;
                 }
+
+                $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$transaction->paymentMethodId]['code'];
 
                 $transactionTechnicalName = $transaction->getStateMachineState()->technicalName;
                 // $dbTransactionPreviousState = '';
@@ -151,7 +154,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 $result = $apiClient->payments()->{$actionType}($lunarTransactionId, $transactionData);
 
                 $this->logger->writeLog([strtoupper($transactionTechnicalName) . ' request data: ', $transactionData]);
-                
+
                 if ('completed' !== $result["{$actionType}State"]) {
                     $this->logger->writeLog(['Error: ', $result]);
                     $errors[$transactionId][] = 'Transaction API action was unsuccesfull';
@@ -173,8 +176,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 /** Change order state. */
                 $this->orderHelper->changeOrderState($orderId, $actionType, $context);
 
-
-                /** Insert new data to database and log it. */
+                /** Insert new data to custom table. */
                 $this->lunarTransactionRepository->create($transactionData, $context);
                 
                 $this->logger->writeLog(['Succes: ', $transactionData[0]]);
@@ -221,13 +223,15 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
     {
         $salesChannelId = $order->getSalesChannelId();
 
-        $transactionMode = $this->systemConfigService->get(self::CONFIG_PATH . 'transactionMode', $salesChannelId);
+        $configPath = self::CONFIG_PATH . $this->paymentMethodCode . '.';
+
+        $transactionMode = $this->systemConfigService->get($configPath . 'TransactionMode', $salesChannelId);
 
         if ($transactionMode == 'test') {
-            return $this->systemConfigService->get(self::CONFIG_PATH . 'testModeAppKey', $salesChannelId);
+            return $this->systemConfigService->get($configPath . 'TestModeAppKey', $salesChannelId);
         }
 
-        return $this->systemConfigService->get(self::CONFIG_PATH . 'liveModeAppKey', $salesChannelId);
+        return $this->systemConfigService->get($configPath . 'LiveModeAppKey', $salesChannelId);
     }
 
 }
