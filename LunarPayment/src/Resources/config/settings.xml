@@ -101,10 +101,10 @@
 
     <card>
         <title>Mobilepay - Configuration</title>
-        <name>lunar_mobilepay_configuration</name>
+        <name>lunar_mobilePay_configuration</name>
 
         <input-field type="single-select">
-            <name>mobilepayTransactionMode</name>
+            <name>mobilePayTransactionMode</name>
             <label>Transaction Mode</label>
             <options>
                 <option>
@@ -119,39 +119,39 @@
         </input-field>
 
         <input-field>
-            <name>mobilepayTestModeAppKey</name>
+            <name>mobilePayTestModeAppKey</name>
             <label>Test mode App Key</label>
         </input-field>
         <input-field>
-            <name>mobilepayTestModePublicKey</name>
+            <name>mobilePayTestModePublicKey</name>
             <label>Test mode Public Key</label>
         </input-field>
 
         <input-field>
-            <name>mobilepayLiveModeAppKey</name>
+            <name>mobilePayLiveModeAppKey</name>
             <label>App Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
         <input-field>
-            <name>mobilepayLiveModePublicKey</name>
+            <name>mobilePayLiveModePublicKey</name>
             <label>Public Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
 
         <input-field>
-            <name>mobilepayConfigurationID</name>
+            <name>mobilePayConfigurationID</name>
             <label>Mobilepay Configuration ID</label>
             <helpText>Email onlinepayments@lunar.app to get it</helpText>
         </input-field>        
         
         <input-field>
-            <name>mobilepayLogoURL</name>
+            <name>mobilePayLogoURL</name>
             <label>Logo URL</label>
             <helpText>URL must start with "https://", and the image must have PNG, JPG, JPEG extension.</helpText>
         </input-field>
 
         <input-field type="single-select">
-            <name>mobilepayCaptureMode</name>
+            <name>mobilePayCaptureMode</name>
             <label>Capture Mode</label>
             <helpText>If you deliver your product instantly (e.g. a digital product), choose Instant mode. If not, use Delayed.</helpText>
             <options>
@@ -167,12 +167,12 @@
         </input-field>
 
         <input-field>
-            <name>mobilepayShopTitle</name>
+            <name>mobilePayShopTitle</name>
             <label>Shop title</label>
         </input-field>
 
         <input-field>
-            <name>mobilepayDescription</name>
+            <name>mobilePayDescription</name>
             <label>Description</label>
         </input-field>
 

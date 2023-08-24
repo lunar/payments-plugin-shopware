@@ -62,7 +62,11 @@ Component.register('lunar-payment-tab', {
                 }
 
                 order.transactions.forEach((orderTransaction) => {
-                    if ('1a9bc76a3c244278a51a2e90c1e6f040' !== orderTransaction.paymentMethodId) {
+                    if (
+                        ('1a9bc76a3c244278a51a2e90c1e6f040' !== orderTransaction.paymentMethodId)
+                        ||
+                        ('018a269ee3ac73b8aef7e1a908577014' !== orderTransaction.paymentMethodId)
+                        ) {
                         this.createNotificationError({
                             title: this.$tc('lunar-payment.paymentDetails.notifications.genericErrorMessage'),
                             message: this.$tc('lunar-payment.paymentDetails.notifications.orderHaveOtherPayments')

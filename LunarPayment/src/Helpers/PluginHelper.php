@@ -8,7 +8,7 @@ class PluginHelper
     public const PLUGIN_CODE = 'LunarPayment';
     
     public const CARD_PAYMENT_METHOD = 'card';
-    public const MOBILEPAY_PAYMENT_METHOD = 'mobilepay';
+    public const MOBILEPAY_PAYMENT_METHOD = 'mobilePay';
 
     /**
      * @TODO split the logic and make separate model for payment method
@@ -21,7 +21,7 @@ class PluginHelper
             ],
         '018a269ee3ac73b8aef7e1a908577014' => [
                 'code' => self::MOBILEPAY_PAYMENT_METHOD,
-                'description' => 'Secure payment with Mobilepay via © Lunar',
+                'description' => 'Secure payment with MobilePay via © Lunar',
             ],
     ];
 
