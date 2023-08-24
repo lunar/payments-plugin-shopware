@@ -80,7 +80,6 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$transaction->paymentMethodId]['code'];
 
                 $transactionTechnicalName = $transaction->getStateMachineState()->technicalName;
-                // $dbTransactionPreviousState = '';
 
                 /**
                  * Check order transaction state sent
@@ -90,26 +89,26 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                     case OrderHelper::TRANSACTION_PAID:
                         $actionType = OrderHelper::CAPTURE;
                         $lunarTransactionState = OrderHelper::AUTHORIZE;
-                        // $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CAPTURE, $context);
+                        $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CAPTURE, $context);
                         break;
                     case OrderHelper::TRANSACTION_REFUNDED:
                         $actionType = OrderHelper::REFUND;
                         $lunarTransactionState = OrderHelper::CAPTURE;
-                        // $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::REFUND, $context);
+                        $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::REFUND, $context);
                         break;
                     case OrderHelper::TRANSACTION_CANCELLED:
                         $actionType = OrderHelper::CANCEL;
                         $lunarTransactionState = OrderHelper::AUTHORIZE;
-                        // $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CANCEL, $context);
+                        $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CANCEL, $context);
                         break;
                     default:
                         // skip parent loop
                         continue 2;
                 }
 
-                // if ($transactionExists) {
-                //     continue;
-                // }
+                if ($transactionExists) {
+                    continue;
+                }
                 
                 /** @var LunarTransaction $previousLunarTransaction */
                 $previousLunarTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionState, $context);
