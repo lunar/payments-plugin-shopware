@@ -225,6 +225,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
                 'transactionCurrency' => $orderCurrency,
                 'orderAmount' => $transactionAmount,
                 'transactionAmount' => $transactionAmount,
+                'paymentMethod' => $this->paymentMethodCode,
                 'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
             ],
         ];

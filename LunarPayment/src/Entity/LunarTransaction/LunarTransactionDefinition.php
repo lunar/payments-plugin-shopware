@@ -8,7 +8,6 @@ use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IdField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\StringField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\FloatField;
-use Shopware\Core\Framework\DataAbstractionLayer\Field\IntField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\PrimaryKey;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\Required;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\CascadeDelete;
@@ -53,10 +52,12 @@ class LunarTransactionDefinition extends EntityDefinition
             (new StringField('transaction_type', 'transactionType'))->addFlags(new Required()),
 
             (new StringField('transaction_currency', 'transactionCurrency'))->addFlags(new Required()),
-
+            
             (new FloatField('order_amount', 'orderAmount'))->addFlags(new Required()),
-
+            
             (new FloatField('transaction_amount', 'transactionAmount'))->addFlags(new Required()),
+            
+            (new StringField('payment_method', 'paymentMethod'))->addFlags(new Required()),
 
             /** Foreign key on Orders */
             (new FkField('order_id', 'orderId', OrderDefinition::class))->addFlags(new Required()),

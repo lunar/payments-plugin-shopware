@@ -169,6 +169,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                         'transactionCurrency' => $currencyCode,
                         'orderAmount' => $totalPrice,
                         'transactionAmount' => $totalPrice,
+                        'paymentMethod' => $this->paymentMethodCode,
                         'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
                     ],
                 ];

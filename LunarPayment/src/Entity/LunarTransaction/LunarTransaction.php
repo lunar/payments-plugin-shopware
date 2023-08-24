@@ -18,6 +18,7 @@ class LunarTransaction extends Entity
     protected string $transactionCurrency;
     protected float $orderAmount;
     protected float $transactionAmount;
+    protected string $paymentMethod;
 
     /**
      * Get/Set orderId
@@ -89,5 +90,17 @@ class LunarTransaction extends Entity
     public function setTransactionAmount($transactionAmount): void
     {
         $this->transactionAmount = $transactionAmount;
+    }
+
+    /**
+     * Get/Set paymentMethod
+     */
+    public function getPaymentMethod(): string
+    {
+        return $this->paymentMethod;
+    }
+    public function setPaymentMethod($paymentMethod): void
+    {
+        $this->paymentMethod = $paymentMethod;
     }
 }

@@ -19,15 +19,13 @@ class Migration1692786254UpdateTransactionsTable extends MigrationStep
      */
     public function update(Connection $connection): void
     {
-        $connection->executeStatement('ALTER TABLE lunar_transaction DROP amount_in_minor;');
         $connection->executeStatement(
             'ALTER TABLE lunar_transaction 
-            ADD 
-            CONSTRAINT fk_lunar_transaction_order_id
-            FOREIGN KEY (order_id) 
-            REFERENCES `order`(id)
-            ON DELETE CASCADE;
+            ADD payment_method 
+            AFTER amount_in_minor
+            VARCHAR(255) NOT NULL;
         ');
+        $connection->executeStatement('ALTER TABLE lunar_transaction DROP amount_in_minor;');
     }
 
     /** */
