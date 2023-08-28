@@ -105,9 +105,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             $privateKey = $this->getSalesChannelConfig('LiveModeAppKey');
         }
 
-        /** 
-         * API Client instance 
-         */
         $this->lunarApiClient = new ApiClient($privateKey);
     }
 
@@ -134,6 +131,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
 
         $this->setArgs();
+        $this->logger->writeLog($this->args, $prettyPrint = false);
 
         try {
             if ($this->salesChannelContext->getCustomer() === null) {
@@ -164,7 +162,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
 
         } catch (\Exception $e) {
-            $this->logger->writeLog(['Exception' => $e->getMessage()]);
+            $this->logger->writeLog(['Async Pay() Exception' => $e->getMessage()]);
 
             throw new AsyncPaymentProcessException($orderTransactionId, $e->getMessage());
         }
@@ -195,13 +193,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
         
         $orderTransactionId = $this->orderTransaction->getId();
-        
-        if ($this->isTransactionCanceled()) {
-            $this->logger->writeLog('Customer canceled');
-            
-            throw new CustomerCanceledAsyncPaymentException($orderTransactionId, 'Customer canceled the payment on the Lunar page');
-        }
-
         $paymentIntentId = $this->getPaymentIntentFromOrder();
 
         if (! $paymentIntentId) {
@@ -236,6 +227,9 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
                 'decimal' => (string) $transactionAmount,
             ]
         ];
+        
+        $this->logger->writeLog($params);
+
 
         if ($this->isInstantMode) {          
 
@@ -435,15 +429,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
 
         return in_array($stateMachineState->getTechnicalName(), self::FINALIZED_ORDER_TRANSACTION_STATES, true);
-    }
-
-    /**
-     * @TODO add logic here
-     */
-    private function isTransactionCanceled(): bool
-    {
-        //
-        return false;
     }
 
     /**
