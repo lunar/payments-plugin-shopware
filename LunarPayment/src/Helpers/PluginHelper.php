@@ -2,8 +2,19 @@
 
 namespace Lunar\Payment\Helpers;
 
+use Shopware\Core\System\SystemConfig\SystemConfigService;
+
+/**
+ * 
+ */
 class PluginHelper
 {
+    public function __construct(
+        private SystemConfigService $systemConfigService,
+    ) {
+        $this->systemConfigService = $systemConfigService;
+    }
+
     public const VENDOR_NAME = 'lunar';
     public const PLUGIN_CODE = 'LunarPayment';
     
@@ -39,6 +50,14 @@ class PluginHelper
     {
         // Cannot use \Composer\InstalledVersions::getVersion('lunar/plugin-shopware-6') right now
         return json_decode(file_get_contents(dirname(__DIR__, 2) . '/composer.json'))->version;
+    }
+
+    /**
+     * 
+     */
+    public function getSalesChannelConfig(string $key, string $paymentMethodCode, ?string $salesChannelId = null)
+    {
+        return $this->systemConfigService->get(self::PLUGIN_CONFIG_PATH . $paymentMethodCode . $key, $salesChannelId);
     }
 
     /**

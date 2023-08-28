@@ -31,17 +31,17 @@ class OrderTransactionController extends AbstractController
         private StateMachineRegistry $stateMachineRegistry,
         private OrderTransactionStateHandler $transactionStateHandler,
         private EntityRepository $lunarTransactionRepository,
-        private OrderHelper $orderHelper,
         private SystemConfigService $systemConfigService,
-        private Logger $logger
+        private Logger $logger,
+        private OrderHelper $orderHelper
     ) {
         $this->stateMachineHistory = $stateMachineHistory;
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->transactionStateHandler = $transactionStateHandler;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
-        $this->orderHelper = $orderHelper;
         $this->systemConfigService = $systemConfigService;
         $this->logger = $logger;
+        $this->orderHelper = $orderHelper;
     }
 
     /**

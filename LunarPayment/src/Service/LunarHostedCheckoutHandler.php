@@ -8,7 +8,6 @@ use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
-use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStates;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\AsynchronousPaymentHandlerInterface;
 use Shopware\Core\Checkout\Payment\Exception\AsyncPaymentFinalizeException;
@@ -52,7 +51,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
     private OrderTransactionEntity $orderTransaction;
     private AsyncPaymentTransactionStruct $paymentTransaction;
 
-    private string $intentIdKey = '_lunar_intent_id';
+    private ?string $paymentIntentId = '';
     private bool $isInstantMode = false;
     private array $args = [];
     private bool $testMode = false;
@@ -70,7 +69,8 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         private EntityRepository $currencyRepository,
         private string $shopwareVersion,
         private Logger $logger,
-        private OrderHelper $orderHelper
+        private OrderHelper $orderHelper,
+        private PluginHelper $pluginHelper,
     ) {
         $this->orderTransactionStateHandler = $orderTransactionStateHandler;
         $this->stateMachineStateRepository = $stateMachineStateRepository;
@@ -80,6 +80,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->shopwareVersion = $shopwareVersion;
         $this->logger = $logger;
         $this->orderHelper = $orderHelper;
+        $this->pluginHelper = $pluginHelper;
     }
 
     /**
@@ -95,14 +96,14 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $paymentMethodId = $this->orderTransaction->getPaymentMethodId();     
         $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$paymentMethodId]['code'];
         
-        $this->isInstantMode = 'instant' === $this->getSalesChannelConfig('CaptureMode');
-        $this->testMode = 'test' == $this->getSalesChannelConfig('TransactionMode');
+        $this->isInstantMode = 'instant' === $this->getSetting('CaptureMode');
+        $this->testMode = 'test' == $this->getSetting('TransactionMode');
         if ($this->testMode) {
-            $this->publicKey =  $this->getSalesChannelConfig('TestModePublicKey');
-            $privateKey =  $this->getSalesChannelConfig('TestModeAppKey');
+            $this->publicKey =  $this->getSetting('TestModePublicKey');
+            $privateKey =  $this->getSetting('TestModeAppKey');
         } else {
-            $this->publicKey = $this->getSalesChannelConfig('LiveModePublicKey');
-            $privateKey = $this->getSalesChannelConfig('LiveModeAppKey');
+            $this->publicKey = $this->getSetting('LiveModePublicKey');
+            $privateKey = $this->getSetting('LiveModeAppKey');
         }
 
         $this->lunarApiClient = new ApiClient($privateKey);
@@ -138,20 +139,25 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
                 throw CartException::customerNotLoggedIn();
             }
 
-            if (! $this->getPaymentIntentFromOrder()) {
-                $paymentIntentId = $this->lunarApiClient->payments()->create($this->args);
+            $this->paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($this->order);
+            if (!$this->paymentIntentId) {
+                $this->paymentIntentId = $this->lunarApiClient->payments()->create($this->args);
             }
     
-            if (empty($paymentIntentId)) {
+            if (empty($this->paymentIntentId)) {
                 $errorMessage = 'An error occured creating payment for order. Please try again or contact system administrator.'; // <a href="/">Go to homepage</a>'
                 throw new AsyncPaymentProcessException($orderTransactionId, $errorMessage);
             }
     
-            $this->savePaymentIntentOnOrder($paymentIntentId, $salesChannelContext->getContext());
+            $this->orderHelper->savePaymentIntentOnOrder(
+                $this->order,
+                $this->paymentIntentId,
+                $this->salesChannelContext->getContext()
+            );
     
-            $redirectUrl = self::REMOTE_URL . $paymentIntentId;
+            $redirectUrl = self::REMOTE_URL . $this->paymentIntentId;
             if(isset($this->args['test'])) {
-                $redirectUrl = self::TEST_REMOTE_URL . $paymentIntentId;
+                $redirectUrl = self::TEST_REMOTE_URL . $this->paymentIntentId;
             }
 
             return new RedirectResponse($redirectUrl);
@@ -193,7 +199,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
         
         $orderTransactionId = $this->orderTransaction->getId();
-        $paymentIntentId = $this->getPaymentIntentFromOrder();
+        $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($this->order);
 
         if (! $paymentIntentId) {
             throw new AsyncPaymentFinalizeException($orderTransactionId, 'Missing payment intent');
@@ -293,8 +299,8 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->args = [
 			'integration' => [
 				'key' => $this->publicKey,
-                'name' => $this->getSalesChannelConfig('ShopTitle'),
-                'logo' =>  $this->getSalesChannelConfig('LogoURL'),
+                'name' => $this->getSetting('ShopTitle'),
+                'logo' =>  $this->getSetting('LogoURL'),
 			],
 			'amount' => [
                 'currency' => $currency,
@@ -320,10 +326,10 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
 			'preferredPaymentMethod' => $this->paymentMethodCode,
 		];
 
-        if ($this->getSalesChannelConfig('ConfigurationID')) {
+        if ($this->getSetting('ConfigurationID')) {
             $this->args['mobilePayConfiguration'] = [
-                'configurationID' => $this->getSalesChannelConfig('ConfigurationID'),
-                'logo' => $this->getSalesChannelConfig('LogoURL'),
+                'configurationID' => $this->getSetting('ConfigurationID'),
+                'logo' => $this->getSetting('LogoURL'),
             ];
         }
 
@@ -333,28 +339,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
 
     }
 
-    /**
-     *
-     */
-    private function getPaymentIntentFromOrder(): ?string
-    {
-        return $this->order->getCustomFieldsValue($this->intentIdKey);
-    }
-
-    /**
-     *
-     */
-    private function savePaymentIntentOnOrder(string $paymentIntentId, Context $context): void
-    {
-        $oldCustomFields = $this->order->getCustomFields() ?? [];
-        $customFields = array_merge([$this->intentIdKey => $paymentIntentId], $oldCustomFields);
-        $this->orderRepository->update([
-            [
-                'id' => $this->order->getId(),
-                'customFields' => $customFields,
-            ]
-        ], $context);
-    }
 
     /**
      * Parses api transaction response for errors
@@ -438,6 +422,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
      */
     private function getCurrency(?Context $context = null): string
     {
+        /** @var CurrencyEntity|null $currencyEntity */
         $currencyEntity = $this->order->getCurrency();
         if ($currencyEntity) {
             return $this->order->getCurrency()->getIsoCode();
@@ -450,6 +435,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         /** @var CurrencyCollection $currencyCollection */
         $currencyCollection = $this->currencyRepository->search($criteria, $context)->getEntities();
 
+        /** @var CurrencyEntity|null $currencyEntity */
         $currencyEntity = $currencyCollection->get($currencyId);
         if ($currencyEntity === null) {
             throw new ShopwareHttpException('Currency provided not found');
@@ -461,9 +447,12 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
     /**
      * 
      */
-    private function getSalesChannelConfig(string $key)
+    private function getSetting(string $key)
     {
-        $configPath = PluginHelper::PLUGIN_CONFIG_PATH . $this->paymentMethodCode;
-        return $this->systemConfigService->get($configPath . $key, $this->salesChannelContext->getSalesChannelId());
+        return $this->pluginHelper->getSalesChannelConfig(
+            $key, 
+            $this->paymentMethodCode, 
+            $this->salesChannelContext->getSalesChannelId()
+        );
     }
 }

@@ -21,6 +21,8 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEnti
  */
 class OrderHelper
 {
+    public const PAYMENT_INTENT_KEY = '_lunar_intent_id';
+
     /**
      * Order transaction states.
      */
@@ -114,6 +116,29 @@ class OrderHelper
         ]);
 
         return $this->orderTransactionRepository->search($criteria, $context)->first();
+    }
+
+    /**
+     *
+     */
+    public function getPaymentIntentFromOrder(OrderEntity $order): ?string
+    {
+        return $order->getCustomFieldsValue(self::PAYMENT_INTENT_KEY);
+    }
+
+    /**
+     *
+     */
+    public function savePaymentIntentOnOrder(OrderEntity $order, string $paymentIntentId, Context $context): void
+    {
+        $oldCustomFields = $order->getCustomFields() ?? [];
+        $customFields = array_merge([self::PAYMENT_INTENT_KEY => $paymentIntentId], $oldCustomFields);
+        $this->orderRepository->update([
+            [
+                'id' => $order->getId(),
+                'customFields' => $customFields,
+            ]
+        ], $context);
     }
 
     /**

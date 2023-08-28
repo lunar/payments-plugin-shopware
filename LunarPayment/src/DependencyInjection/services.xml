@@ -10,7 +10,22 @@
             <tag name="shopware.entity.definition" entity="lunar_transaction"/>
         </service>
 
-        <!-- hosted checkout -->
+        <!-- Helpers -->
+        <service id="Lunar\Payment\Helpers\PluginHelper">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+        </service>
+
+        <service id="Lunar\Payment\Helpers\OrderHelper">
+            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument type="service" id="order.repository" />
+            <argument type="service" id="order_transaction.repository" />
+        </service>
+
+        <service id="Lunar\Payment\Helpers\LogHelper"></service>
+
+
+        <!-- Handler & controllers -->
+
         <service id="Lunar\Payment\Service\LunarHostedCheckoutHandler">
             <!-- <argument type="service" id="monolog.logger"/> -->
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
@@ -22,25 +37,8 @@
             <argument>%kernel.shopware_version%</argument>
             <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
             <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
             <tag name="shopware.payment.method.async"/>
-        </service>
-
-        <service id="Lunar\Payment\Helpers\OrderHelper">
-            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
-            <argument type="service" id="order.repository" />
-            <argument type="service" id="order_transaction.repository" />
-        </service>
-
-        <service id="Lunar\Payment\Helpers\LogHelper"></service>
-
-        <service id="Lunar\Payment\Subscriber\OrderTransactionStateChangeSubscriber">
-            <argument type="service" id="state_machine_history.repository"/>
-            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
-            <argument type="service" id="lunar_transaction.repository"/>
-            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
-            <tag name="kernel.event_subscriber"/>
         </service>
 
         <service id="Lunar\Payment\Controller\SettingsController">
@@ -57,15 +55,41 @@
             <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
             <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
             <argument type="service" id="lunar_transaction.repository"/>
-            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
 
             <tag name="controller.service_arguments" />
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
         </service>
+
+
+        <!-- OBSERVERS -->
+
+        <service id="Lunar\Payment\Subscriber\OrderTransactionStateChangeSubscriber">
+            <argument type="service" id="state_machine_history.repository"/>
+            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument type="service" id="lunar_transaction.repository"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <service id="Lunar\Payment\Subscriber\OrderLoadedSubscriber">
+            <argument type="service" id="state_machine_history.repository"/>
+            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument type="service" id="lunar_transaction.repository"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
 
     </services>
 

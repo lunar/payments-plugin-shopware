@@ -27,24 +27,24 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
  */
 class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 {
-    private const CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
-
     private string $paymentMethodCode;
 
     public function __construct(
         private EntityRepository $stateMachineHistory,
         private StateMachineRegistry $stateMachineRegistry,
         private EntityRepository $lunarTransactionRepository,
-        private OrderHelper $orderHelper,
         private SystemConfigService $systemConfigService,
-        private Logger $logger
+        private Logger $logger,
+        private OrderHelper $orderHelper,
+        private PluginHelper $pluginHelper
     ) {
         $this->stateMachineHistory = $stateMachineHistory;
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
-        $this->orderHelper = $orderHelper;
         $this->systemConfigService = $systemConfigService;
         $this->logger = $logger;
+        $this->orderHelper = $orderHelper;
+        $this->pluginHelper = $pluginHelper;
     }
 
     public static function getSubscribedEvents(): array
@@ -114,7 +114,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
             try {
 
-                $apiClient = new ApiClient($this->getApiKey($order));
+                $apiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
                 $fetchedTransaction = $apiClient->payments()->fetch($lunarTransactionId);
 
                 if (!$fetchedTransaction) {
@@ -182,23 +182,18 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
         return $this->lunarTransactionRepository->search($criteria, $context)->first();
     }
 
-
     /**
      *
      */
-    private function getApiKey($order)
+    private function getApiKey($salesChannelId)
     {
-        $salesChannelId = $order->getSalesChannelId();
-
-        $configPath = self::CONFIG_PATH . $this->paymentMethodCode;
-
-        $transactionMode = $this->systemConfigService->get($configPath . 'TransactionMode', $salesChannelId);
+        $transactionMode = $this->pluginHelper->getSalesChannelConfig('TransactionMode', $this->paymentMethodCode, $salesChannelId);
 
         if ($transactionMode == 'test') {
-            return $this->systemConfigService->get($configPath . 'TestModeAppKey', $salesChannelId);
+            return $this->pluginHelper->getSalesChannelConfig('TestModeAppKey', $this->paymentMethodCode, $salesChannelId);
         }
 
-        return $this->systemConfigService->get($configPath . 'LiveModeAppKey', $salesChannelId);
+        return $this->pluginHelper->getSalesChannelConfig('LiveModeAppKey', $this->paymentMethodCode, $salesChannelId);
     }
 
 }
