@@ -11,7 +11,7 @@ class CheckUnpaidOrdersTask extends ScheduledTask
 {
     public static function getTaskName(): string
     {
-        return 'lunar.check_unpaid_orders';
+        return 'lunar_payment.check_unpaid_orders';
     }
 
     public static function getDefaultInterval(): int
