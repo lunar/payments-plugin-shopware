@@ -91,6 +91,16 @@
         </service>
 
 
+        <!-- Scheduled tasks -->
+
+        <service id="Lunar\Payment\ScheduledTask\CheckUnpaidOrdersTask">
+            <tag name="shopware.scheduled.task" />
+        </service>
+        <service id="Lunar\Payment\ScheduledTask\CheckUnpaidOrdersTaskHandler">
+            <argument type="service" id="scheduled_task.repository" />
+            <tag name="messenger.message_handler" />
+        </service>
+
     </services>
 
 </container>
