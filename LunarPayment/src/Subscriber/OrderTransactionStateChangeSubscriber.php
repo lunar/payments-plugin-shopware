@@ -134,7 +134,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
                 $apiResult = $apiClient->payments()->{$actionType}($lunarTransactionId, $apiTransactionData);
 
-                $this->logger->writeLog([strtoupper($actionType) . ' request data: ', $apiTransactionData]);
+                $this->logger->writeLog([strtoupper($actionType) . ' request data: ', $apiTransactionData], false);
 
                 if ('completed' !== $apiResult["{$actionType}State"]) {
                     $errors[$orderNumber][] = 'Transaction API action was unsuccesfull';
@@ -154,7 +154,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                     ],
                 ], $context);
                 
-                $this->logger->writeLog(['Succes:', array_merge(['orderNumber' => $orderNumber, 'action' => $actionType], $apiTransactionData)]);
+                $this->logger->writeLog(['Succes:', array_merge(['orderNumber' => $orderNumber, 'action' => $actionType], $apiTransactionData)], false);
 
                 $this->orderHelper->changeOrderState($orderId, $actionType, $context);
 

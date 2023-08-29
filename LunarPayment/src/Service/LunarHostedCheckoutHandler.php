@@ -132,7 +132,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
 
         $this->setArgs();
-        $this->logger->writeLog($this->args, $prettyPrint = false);
+        $this->logger->writeLog($this->args, false);
 
         try {
             if ($this->salesChannelContext->getCustomer() === null) {
@@ -234,7 +234,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             ]
         ];
         
-        $this->logger->writeLog($params);
+        $this->logger->writeLog($params, false);
 
 
         if ($this->isInstantMode) {          
