@@ -123,7 +123,7 @@ class OrderHelper
      */
     public function getPaymentIntentFromOrder(OrderEntity $order): ?string
     {
-        return $order->getCustomFieldsValue(self::PAYMENT_INTENT_KEY);
+        return $order->getCustomFields()[self::PAYMENT_INTENT_KEY] ?? ''; // getCustomFieldsValue($field) - available in SW 6.5
     }
 
     /**
