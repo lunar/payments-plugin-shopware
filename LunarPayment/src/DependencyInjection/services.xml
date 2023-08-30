@@ -19,6 +19,7 @@
             <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
             <argument type="service" id="order.repository" />
             <argument type="service" id="order_transaction.repository" />
+            <argument type="service" id="currency.repository" />
         </service>
 
         <service id="Lunar\Payment\Helpers\LogHelper"></service>
@@ -33,7 +34,6 @@
             <argument type="service" id="state_machine_state.repository"/>
             <argument type="service" id="lunar_transaction.repository"/>
             <argument type="service" id="order.repository" />
-            <argument type="service" id="currency.repository" />
             <argument>%kernel.shopware_version%</argument>
             <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
             <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
@@ -79,25 +79,24 @@
             <tag name="kernel.event_subscriber"/>
         </service>
 
-        <service id="Lunar\Payment\Subscriber\OrderLoadedSubscriber">
-            <argument type="service" id="state_machine_history.repository"/>
-            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
-            <argument type="service" id="lunar_transaction.repository"/>
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
-            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
-            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-
 
         <!-- Scheduled tasks -->
 
         <service id="Lunar\Payment\ScheduledTask\CheckUnpaidOrdersTask">
             <tag name="shopware.scheduled.task" />
         </service>
+        
         <service id="Lunar\Payment\ScheduledTask\CheckUnpaidOrdersTaskHandler">
-            <argument type="service" id="scheduled_task.repository" />
+            <argument type="service" id="scheduled_task.repository"/>
+            <argument type="service" id="state_machine_history.repository"/>
+            <argument type="service" id="Shopware\Core\System\StateMachine\StateMachineRegistry"/>
+            <argument type="service" id="lunar_transaction.repository"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
+            <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
+            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
+
             <tag name="messenger.message_handler" />
         </service>
 
