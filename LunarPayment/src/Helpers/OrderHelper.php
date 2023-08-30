@@ -10,11 +10,16 @@ use Shopware\Core\System\StateMachine\Transition;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\AndFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStates;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
+use Shopware\Core\System\Currency\CurrencyCollection;
+use Shopware\Core\System\Currency\CurrencyEntity;
 
+use Lunar\Payment\Service\LunarHostedCheckoutHandler;
 
 /**
  *
@@ -26,6 +31,7 @@ class OrderHelper
     /**
      * Order transaction states.
      */
+    public const TRANSACTION_OPEN = OrderTransactionStates::STATE_OPEN;
     public const TRANSACTION_AUTHORIZED = OrderTransactionStates::STATE_AUTHORIZED;
     public const TRANSACTION_PAID = OrderTransactionStates::STATE_PAID;
     public const TRANSACTION_REFUND = 'refund';
@@ -47,11 +53,38 @@ class OrderHelper
     public function __construct(
         private StateMachineRegistry $stateMachineRegistry,
         private EntityRepository $orderRepository,
-        private EntityRepository $orderTransactionRepository
+        private EntityRepository $orderTransactionRepository,
+        private EntityRepository $currencyRepository
     ) {
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->orderRepository = $orderRepository;
         $this->orderTransactionRepository = $orderTransactionRepository;
+        $this->currencyRepository = $currencyRepository;
+    }
+
+    /**
+     * 
+     */
+    public function getOrdersFrom($dateTime)
+    {    
+        $criteria = new Criteria();
+
+        $criteria->addAssociations([
+            'salesChannel',
+            'transactions.stateMachineState',
+            'transactions.paymentMethod',
+        ]);
+
+        $criteria->addFilter(
+            new AndFilter([
+                new EqualsFilter('transactions.stateMachineState.technicalName', self::TRANSACTION_OPEN),
+                new EqualsFilter('transactions.paymentMethod.handlerIdentifier', LunarHostedCheckoutHandler::class),
+                // new RangeFilter('createdAt', [RangeFilter::GTE => $dateTime->format('Y-m-d H:i:s'), RangeFilter::LTE => (new \DateTime())->format('Y-m-d H:i:s')]),
+                new RangeFilter('createdAt', [RangeFilter::GT => $dateTime->format('Y-m-d H:i:s')]), // >=
+            ])
+        );
+
+        return $this->orderRepository->search($criteria, Context::createDefaultContext())->getEntities();
     }
 
     /**
@@ -139,6 +172,34 @@ class OrderHelper
                 'customFields' => $customFields,
             ]
         ], $context);
+    }
+
+    /**
+     * Fallback if order currency returns null
+     * 
+     * @throws \Exception
+     */
+    public function getCurrencyCode(OrderEntity $order): string
+    {
+        /** @var CurrencyEntity|null $currencyEntity */
+        $currencyEntity = $order->getCurrency();
+        if ($currencyEntity) {
+            return $order->getCurrency()->getIsoCode();
+        } 
+
+        $currencyId = $order->getCurrencyId();
+        $criteria = new Criteria([$currencyId]);
+
+        /** @var CurrencyCollection $currencyCollection */
+        $currencyCollection = $this->currencyRepository->search($criteria, Context::createDefaultContext())->getEntities();
+
+        /** @var CurrencyEntity|null $currencyEntity */
+        $currencyEntity = $currencyCollection->get($currencyId);
+        if ($currencyEntity === null) {
+            throw new \Exception('Currency provided not found');
+        }
+          
+        return $currencyEntity->getIsoCode();
     }
 
     /**

@@ -5,7 +5,6 @@ namespace Lunar\Payment\Service;
 // use Psr\Log\LoggerInterface;
 
 use Shopware\Core\Defaults;
-use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 use Shopware\Core\Checkout\Payment\Cart\AsyncPaymentTransactionStruct;
@@ -23,9 +22,6 @@ use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEnti
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Shopware\Core\System\Currency\CurrencyCollection;
-use Shopware\Core\System\Currency\CurrencyEntity;
-use Shopware\Core\Framework\ShopwareHttpException;
 
 use Lunar\Lunar as ApiClient;
 use Lunar\Exception\ApiException as LunarApiException;
@@ -66,7 +62,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         private EntityRepository $stateMachineStateRepository,
         private EntityRepository $lunarTransactionRepository,
         private EntityRepository $orderRepository,
-        private EntityRepository $currencyRepository,
         private string $shopwareVersion,
         private Logger $logger,
         private OrderHelper $orderHelper,
@@ -76,7 +71,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $this->stateMachineStateRepository = $stateMachineStateRepository;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
         $this->orderRepository = $orderRepository;
-        $this->currencyRepository = $currencyRepository;
         $this->shopwareVersion = $shopwareVersion;
         $this->logger = $logger;
         $this->orderHelper = $orderHelper;
@@ -211,7 +205,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             throw new AsyncPaymentFinalizeException($orderTransactionId, $this->getResponseError($apiResponse));
         }
 
-        $orderCurrency = $this->getCurrency($context);
+        $orderCurrency = $this->orderHelper->getCurrencyCode($this->order);
         $transactionAmount = $this->orderTransaction->getAmount()->getTotalPrice();
 
         $transactionData = [
@@ -234,7 +228,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
             ]
         ];
         
-        $this->logger->writeLog($params, false);
+        $this->logger->writeLog(['Finalize payment params' => $params], false);
 
 
         if ($this->isInstantMode) {          
@@ -361,7 +355,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
      */
     private function isTransactionSuccessful($apiResponse)
     {
-        $matchCurrency = $this->getCurrency() == $apiResponse['amount']['currency'];
+        $matchCurrency = $this->orderHelper->getCurrencyCode($this->order) == $apiResponse['amount']['currency'];
         $matchAmount = $this->order->getAmountTotal() == $apiResponse['amount']['decimal'];
 
         return (true == $apiResponse['authorisationCreated'] && $matchCurrency && $matchAmount);
@@ -413,35 +407,6 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         }
 
         return in_array($stateMachineState->getTechnicalName(), self::FINALIZED_ORDER_TRANSACTION_STATES, true);
-    }
-
-    /**
-     * Fallback if order currency returns null
-     * 
-     * @throws ShopwareHttpException
-     */
-    private function getCurrency(?Context $context = null): string
-    {
-        /** @var CurrencyEntity|null $currencyEntity */
-        $currencyEntity = $this->order->getCurrency();
-        if ($currencyEntity) {
-            return $this->order->getCurrency()->getIsoCode();
-        } 
-
-        $currencyId = $this->order->getCurrencyId();
-        $context = $context ?: $this->salesChannelContext->getContext();
-        $criteria = new Criteria([$currencyId]);
-
-        /** @var CurrencyCollection $currencyCollection */
-        $currencyCollection = $this->currencyRepository->search($criteria, $context)->getEntities();
-
-        /** @var CurrencyEntity|null $currencyEntity */
-        $currencyEntity = $currencyCollection->get($currencyId);
-        if ($currencyEntity === null) {
-            throw new ShopwareHttpException('Currency provided not found');
-        }
-          
-        return $currencyEntity->getIsoCode();
     }
 
     /**

@@ -10,7 +10,6 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\Api\Exception\ExpectationFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
@@ -99,6 +98,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                     continue 2;
             }
 
+
             if ($transactionExists) {
                 continue;
             }
@@ -123,7 +123,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 }
 
                 $totalPrice = $transaction->amount->getTotalPrice();
-                $currencyCode = $transaction->getOrder()->getCurrency()->isoCode;
+                $currencyCode = $this->orderHelper->getCurrencyCode($transaction->getOrder());
 
                 $apiTransactionData = [
                     'amount' => [
@@ -166,7 +166,8 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
         if (!empty($errors)) {            
             $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            throw new ExpectationFailedException($errors);
+            // throw new ExpectationFailedException($errors);
+            throw new \Exception(json_encode($errors));
         }
     }
 
