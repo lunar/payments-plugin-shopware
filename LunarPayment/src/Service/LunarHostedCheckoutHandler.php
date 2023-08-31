@@ -211,6 +211,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $transactionData = [
             [
                 'orderId' => $this->order->getId(),
+                'orderNumber' => $this->order->getOrderNumber(),
                 'transactionId' => $paymentIntentId,
                 'transactionType' => OrderHelper::AUTHORIZE,
                 'transactionCurrency' => $orderCurrency,

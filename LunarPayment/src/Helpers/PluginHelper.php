@@ -43,6 +43,8 @@ class PluginHelper
 
     public const PLUGIN_CONFIG_PATH = self::PLUGIN_CODE . '.settings.';
 
+    public const TASK_SCHEDULER_NAME = 'lunar_payment.check_unpaid_orders';
+
     /** 
      * Only keep the plugin version in composer.json
      */

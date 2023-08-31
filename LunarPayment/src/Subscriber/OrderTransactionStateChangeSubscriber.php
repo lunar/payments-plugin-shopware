@@ -10,6 +10,7 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+// use Shopware\Core\Framework\Api\Exception\ExceptionFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
@@ -144,6 +145,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 $this->lunarTransactionRepository->create([
                     [
                         'orderId' => $orderId,
+                        'orderNumber' => $orderNumber,
                         'transactionId' => $lunarTransactionId,
                         'transactionType' => $actionType,
                         'transactionCurrency' => $currencyCode,
@@ -166,7 +168,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
         if (!empty($errors)) {            
             $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            // throw new ExpectationFailedException($errors);
+            // throw new ExpectationFailedException($errors); // SW 6.5
             throw new \Exception(json_encode($errors));
         }
     }

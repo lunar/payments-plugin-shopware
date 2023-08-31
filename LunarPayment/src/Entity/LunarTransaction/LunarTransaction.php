@@ -13,6 +13,7 @@ class LunarTransaction extends Entity
     use EntityIdTrait;
 
     protected string $orderId;
+    protected string $orderNumber;
     protected string $transactionId;
     protected string $transactionType;
     protected string $transactionCurrency;
@@ -30,6 +31,18 @@ class LunarTransaction extends Entity
     public function setOrderId($orderId): void
     {
         $this->orderId = $orderId;
+    }
+
+    /**
+     * Get/Set orderNumber
+     */
+    public function getOrderNumber(): string
+    {
+        return $this->orderNumber;
+    }
+    public function setOrderNumber($orderNumber): void
+    {
+        $this->orderNumber = $orderNumber;
     }
 
     /**

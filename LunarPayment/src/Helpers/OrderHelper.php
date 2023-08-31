@@ -32,6 +32,7 @@ class OrderHelper
      * Order transaction states.
      */
     public const TRANSACTION_OPEN = OrderTransactionStates::STATE_OPEN;
+    public const TRANSACTION_AUTHORIZE = 'authorize';
     public const TRANSACTION_AUTHORIZED = OrderTransactionStates::STATE_AUTHORIZED;
     public const TRANSACTION_PAID = OrderTransactionStates::STATE_PAID;
     public const TRANSACTION_REFUND = 'refund';

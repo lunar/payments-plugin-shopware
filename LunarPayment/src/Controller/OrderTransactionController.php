@@ -79,9 +79,9 @@ class OrderTransactionController extends AbstractController
      *
      */
     private function processPaymentAction(
-                                            Request $request,
-                                            Context $context,
-                                            string $actionType
+        Request $request,
+        Context $context,
+        string $actionType
     ): JsonResponse {
 
         switch ($actionType) {
@@ -102,9 +102,9 @@ class OrderTransactionController extends AbstractController
         try {
             $order = $this->orderHelper->getOrderById($orderId, $context);
 
-            $lastOrderTransaction = $order->transactions->last();
+            $lastOrderTransaction = $order->transactions->last(); // @TODO check this if needs first()
 
-            /** 
+            /**
              * Change order transaction state.
              * The event will be processed in Lunar\Payment\Subscriber\OrderTransactionStateChangeSubscriber
              */
