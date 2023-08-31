@@ -49,32 +49,32 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 
             $orderId = $order->getId();
 
-            /** 
-             * Make sure we don't have an authorization/capture for order transaction 
-             * @var LunarTransaction|null $authorizedOrCapturedTransaction
-             */
-            $lunarTransactionStates = [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE];
-            $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionStates, $context);
-            
-            if ($authorizedOrCapturedTransaction) {
-                continue;
-            }
-
-            $orderTransactions = $order->getTransactions();
-
-            /** @var OrderTransactionEntity|null $orderTransaction */
-            $orderTransaction = $orderTransactions->first();
-
-            if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId])) {
-                continue;
-            }
-
-            $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId]['code'];
-
-            $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($order);
-            $orderNumber = $order->getOrderNumber();
-
             try {
+
+                /** 
+                 * Make sure we don't have an authorization/capture for order transaction 
+                 * @var LunarTransaction|null $authorizedOrCapturedTransaction
+                 */
+                $lunarTransactionStates = [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE];
+                $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionStates, $context);
+                
+                if ($authorizedOrCapturedTransaction) {
+                    continue;
+                }
+
+                $orderTransactions = $order->getTransactions();
+
+                /** @var OrderTransactionEntity|null $orderTransaction */
+                $orderTransaction = $orderTransactions->first();
+
+                if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId])) {
+                    continue;
+                }
+
+                $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId]['code'];
+
+                $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($order);
+                $orderNumber = $order->getOrderNumber();
 
                 $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
                 $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
@@ -127,9 +127,7 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
         }
 
         if (!empty($errors)) {            
-            $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            // throw new ExpectationFailedException($errors); // SW 6.5
-            throw new \Exception(json_encode($errors));
+            $this->logger->writeLog(['CRON ERRORS: ', json_encode($errors)]);
         }
     }
 
