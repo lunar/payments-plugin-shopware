@@ -3,57 +3,28 @@
 namespace Lunar\Payment\ScheduledTask;
 
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 
 use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Order\OrderEntity;
-use Shopware\Core\System\SystemConfig\SystemConfigService;
-use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 // use Shopware\Core\Framework\Api\Exception\ExpectationFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\OrFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
-use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 
 use Lunar\Lunar as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
-use Lunar\Payment\Helpers\LogHelper as Logger;
 use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 
 /**
  * 
  */
 #[AsMessageHandler]
-class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
+class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 {
     private string $paymentMethodCode;
-
-    public function __construct(
-        protected EntityRepository $scheduledTaskRepo,
-        private EntityRepository $stateMachineHistory,
-        private StateMachineRegistry $stateMachineRegistry,
-        private EntityRepository $lunarTransactionRepository,
-        private SystemConfigService $systemConfigService,
-        private OrderTransactionStateHandler $orderTransactionStateHandler,
-        private Logger $logger,
-        private OrderHelper $orderHelper,
-        private PluginHelper $pluginHelper
-    ) {
-        parent::__construct($scheduledTaskRepo);
-        
-        $this->stateMachineHistory = $stateMachineHistory;
-        $this->stateMachineRegistry = $stateMachineRegistry;
-        $this->lunarTransactionRepository = $lunarTransactionRepository;
-        $this->systemConfigService = $systemConfigService;
-        $this->orderTransactionStateHandler = $orderTransactionStateHandler;
-        $this->logger = $logger;
-        $this->orderHelper = $orderHelper;
-        $this->pluginHelper = $pluginHelper;
-    }
 
 
     public static function getHandledMessages(): iterable
@@ -104,11 +75,7 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
             $orderNumber = $order->getOrderNumber();
 
             try {
-                /**
-                 * Instantiate Api Client
-                 * Fetch transaction and make api action
-                 * Change order transaction payment state
-                 */
+
                 $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
                 $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
 
