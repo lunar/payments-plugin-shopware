@@ -125,6 +125,7 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
                 $transactionData = [
                     [
                         'orderId' => $orderId,
+                        'orderNumber' => $orderNumber,
                         'transactionId' => $paymentIntentId,
                         'transactionType' => OrderHelper::AUTHORIZE,
                         'transactionCurrency' => $this->orderHelper->getCurrencyCode($order),
