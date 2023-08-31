@@ -30,9 +30,7 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 #[AsMessageHandler]
 class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
 {
-    private bool $isInstantMode = false;
     private string $paymentMethodCode;
-
 
     public function __construct(
         protected EntityRepository $scheduledTaskRepo,
@@ -77,13 +75,15 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
 
         /** @var OrderEntity $order */
         foreach ($orders as $order) {  
+
             $orderId = $order->getId();
 
             /** 
              * Make sure we don't have an authorization/capture for order transaction 
              * @var LunarTransaction|null $authorizedOrCapturedTransaction
              */
-            $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE], $context);
+            $lunarTransactionStates = [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE];
+            $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionStates, $context);
             
             if ($authorizedOrCapturedTransaction) {
                 continue;
@@ -100,9 +100,6 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
 
             $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId]['code'];
 
-            $checkoutMode = $this->pluginHelper->getSalesChannelConfig('CaptureMode', $this->paymentMethodCode, $order->getSalesChannelId());
-            $this->isInstantMode = 'instant' == $checkoutMode;
-
             $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($order);
             $orderNumber = $order->getOrderNumber();
 
@@ -115,6 +112,7 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
                 $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
                 $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
 
+
                 if (!$fetchedTransaction) {
                     $errors[$orderNumber][] = 'Fetch API transaction failed: no transaction with provided id: ' . $paymentIntentId;
                     continue;
@@ -124,52 +122,35 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
                     continue;
                 }
 
-                $totalPrice = $orderTransaction->amount->getTotalPrice();
-                $currencyCode = $this->orderHelper->getCurrencyCode($order);
-
-                $apiTransactionData = [
-                    'amount' => [
-                        'currency' => $currencyCode,
-                        'decimal' => (string) $totalPrice,
-                    ],
-                ];
-
-                $actionType = OrderHelper::TRANSACTION_AUTHORIZED;
-
                 $transactionData = [
                     [
                         'orderId' => $orderId,
                         'transactionId' => $paymentIntentId,
                         'transactionType' => OrderHelper::AUTHORIZE,
-                        'transactionCurrency' => $currencyCode,
-                        'orderAmount' => $totalPrice,
-                        'transactionAmount' => $totalPrice,
+                        'transactionCurrency' => $this->orderHelper->getCurrencyCode($order),
+                        'orderAmount' => $orderTransaction->amount->getTotalPrice(),
+                        'transactionAmount' => $orderTransaction->amount->getTotalPrice(),
                         'paymentMethod' => $this->paymentMethodCode,
                         'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
                     ],
                 ];
 
-                if ($this->isInstantMode) {
-                    $apiResult = $lunarApiClient->payments()->capture($paymentIntentId, $apiTransactionData);
-
-                    $this->logger->writeLog(['Capture request data (observer): ', $apiTransactionData]);
-
-                    if ('completed' !== $apiResult["captureState"]) {
-                        $errors[$orderNumber][] = 'Transaction API action was unsuccesfull';
-                        continue;
-                    }
-
-                    $transactionData[0]['transactionType'] = OrderHelper::CAPTURE;
-                    $actionType = OrderHelper::TRANSACTION_PAID; 
-                }
-
+                
                 $this->lunarTransactionRepository->create($transactionData, $context);
 
+                
+                $checkoutMode = $this->pluginHelper->getSalesChannelConfig('CaptureMode', $this->paymentMethodCode, $order->getSalesChannelId());
+                $isInstantMode = 'instant' == $checkoutMode;
+                $actionType = $isInstantMode ? OrderHelper::TRANSACTION_PAID : OrderHelper::TRANSACTION_AUTHORIZE;
+
+                /** Changing order transaction state to "authorized" => nothing will happen */
                 $this->orderTransactionStateHandler->{$actionType}($orderTransaction->getId(), $context);
 
-                $this->orderHelper->changeOrderState($orderId, $actionType, $context);
-                
-                $this->logger->writeLog(['Polling success:', array_merge(['orderNumber' => $orderNumber], $apiTransactionData)], false);
+                (! $isInstantMode) 
+                    ? ($this->orderHelper->changeOrderState($orderId, OrderHelper::TRANSACTION_AUTHORIZED, $context))
+                    : null;
+
+                $this->logger->writeLog(['Polling success:', ['orderNumber' => $orderNumber]], false);
 
             } catch (\Exception $e) {
                 $errors[$orderNumber]['General exception'] = $e->getMessage();
@@ -179,7 +160,7 @@ class CheckUnpaidOrdersTaskHandler extends ScheduledTaskHandler
 
         if (!empty($errors)) {            
             $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            // throw new ExpectationFailedException($errors);
+            // throw new ExpectationFailedException($errors); // SW 6.5
             throw new \Exception(json_encode($errors));
         }
     }
