@@ -2,6 +2,18 @@
 
 namespace Lunar\Payment;
 
+/**
+ * Load sdk from vendor folder if exists
+ * It can be installed also via composer without problems
+ */
+if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+    $loader = require_once dirname(__DIR__) . '/vendor/autoload.php';
+    if ($loader !== true) {
+        spl_autoload_unregister([$loader, 'loadClass']);
+        $loader->register(false);
+    }
+}
+
 use Shopware\Core\Framework\Plugin;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
@@ -50,9 +62,13 @@ class LunarPayment extends Plugin
 
         $this->addPaymentMethod($context->getContext());
 
-        /** Defaults for multi-select field "supportedCards". */
+        /** Defaults for multi-select field "acceptedCards". */
         $config = $this->container->get(SystemConfigService::class);
-        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'supportedCards', PluginHelper::ACCEPTED_CARDS);
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'acceptedCards', PluginHelper::ACCEPTED_CARDS);
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'transactionMode', PluginHelper::TRANSACTION_MODE);
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'captureMode', PluginHelper::CAPTURE_MODE);
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'shopTitle', $config->get('core.basicInformation.shopName'));
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'description', PluginHelper::PAYMENT_METHOD_DESCRIPTION);
     }
 
     /**
@@ -63,6 +79,7 @@ class LunarPayment extends Plugin
         $this->setPaymentMethodIsActive(false, $context->getContext());
 
         parent:: uninstall($context);
+
         if ($context->keepUserData()) {
             return;
         }
@@ -122,6 +139,7 @@ class LunarPayment extends Plugin
 
         /** @var EntityRepository $paymentRepository */
         $paymentRepository = $this->container->get('payment_method.repository');
+        /** @var EntityRepository $translationRepository */
         $translationRepository = $this->container->get('payment_method_translation.repository');
 
         $paymentRepository->upsert([$paymentMethodData], $context);

@@ -156,7 +156,7 @@ Component.register('lunar-settings', {
                     /** Clear errors. */
                     this.$refs.systemConfig.config.forEach((configElement) => {
                         configElement.elements.forEach((child) => {
-                                delete child.config.error;
+                            delete child.config.error;
                         });
                     });
 
@@ -186,9 +186,10 @@ Component.register('lunar-settings', {
                 let apiResponseErrors = errorResponse.response.data.errors;
 
                 Object.entries(apiResponseErrors).forEach(([key, errorMessage]) => {
+                    // title+detail added for SW6.5
                     this.createNotificationError({
-                        title: titleError,
-                        message: errorMessage,
+                        title: errorMessage.title || titleError,
+                        message: errorMessage.detail || errorMessage,
                     })
                 });
 

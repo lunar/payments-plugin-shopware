@@ -46,7 +46,7 @@
                 <div v-show="hideField(element)">
 
                         <sw-form-field-renderer
-                            v-if="!element.name.includes('transactionMode') || !element.name.includes('supportedCards') || !element.name.includes('captureMode') || !element.name.includes('showLunarTransactionInOrderList')"
+                            v-if="!element.name.includes('transactionMode') || !element.name.includes('acceptedCards') || !element.name.includes('captureMode') || !element.name.includes('showLunarTransactionInOrderList')"
                             v-bind="getElementBind(getBind(element, config))"
                             v-model="config[element.name]"
                         />
@@ -72,7 +72,7 @@
                         />
 
                         <sw-form-field-renderer
-                            v-else-if="element.name.includes('supportedCards')"
+                            v-else-if="element.name.includes('acceptedCards')"
                             :config="{
                                 componentName: 'sw-multi-select',
                                 label: getInlineSnippet(getElementBind(getBind(element, config)).config.label),

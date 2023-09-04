@@ -20,27 +20,26 @@
                     <name>Test mode</name>
                 </option>
             </options>
-            <defaultValue>live</defaultValue>
         </input-field>
 
-        <input-field>
-            <name>testModePublicKey</name>
-            <label>Test mode Public Key</label>
-        </input-field>
         <input-field>
             <name>testModeAppKey</name>
             <label>Test mode App Key</label>
         </input-field>
-
         <input-field>
-            <name>liveModePublicKey</name>
-            <label>Public Key</label>
-            <helpText></helpText>
+            <name>testModePublicKey</name>
+            <label>Test mode Public Key</label>
         </input-field>
+
         <input-field>
             <name>liveModeAppKey</name>
             <label>App Key</label>
-            <helpText></helpText>
+            <helpText>Get it from your Lunar dashboard</helpText>
+        </input-field>
+        <input-field>
+            <name>liveModePublicKey</name>
+            <label>Public Key</label>
+            <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
 
         <input-field type="single-select">
@@ -57,18 +56,16 @@
                     <name>Instant</name>
                 </option>
             </options>
-            <defaultValue>delayed</defaultValue>
         </input-field>
 
         <input-field>
-            <name>popupTitle</name>
-            <label>Popup title</label>
-            <helpText>The title for the payment modal</helpText>
+            <name>shopTitle</name>
+            <label>Shop title</label>
         </input-field>
         <input-field>
-            <name>popupDescription</name>
+            <name>description</name>
             <label>Popup description</label>
-            <helpText>The description for the payment modal</helpText>
+            <helpText>The description that will shows up in checkout</helpText>
         </input-field>
     </card>
 
@@ -77,8 +74,8 @@
         <name>payment_miscellaneous</name>
 
         <input-field type="multi-select">
-            <name>supportedCards</name>
-            <label>Supported cards</label>
+            <name>acceptedCards</name>
+            <label>Accepted cards</label>
             <options>
                 <option>
                     <id>visa</id>
@@ -112,7 +109,6 @@
                     <name>Show</name>
                 </option>
             </options>
-            <defaultValue>0</defaultValue>
         </input-field> -->
     </card>
 
