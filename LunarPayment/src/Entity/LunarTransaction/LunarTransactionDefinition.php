@@ -47,6 +47,8 @@ class LunarTransactionDefinition extends EntityDefinition
 
             (new StringField('order_id', 'orderId'))->addFlags(new Required(),  new CascadeDelete()),
 
+            (new StringField('order_number', 'orderNumber'))->addFlags(new Required()),
+
             (new StringField('transaction_id', 'transactionId'))->addFlags(new Required()),
 
             (new StringField('transaction_type', 'transactionType'))->addFlags(new Required()),
