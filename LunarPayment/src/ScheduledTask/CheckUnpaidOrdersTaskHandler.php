@@ -34,101 +34,101 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 
     public function run(): void
     {
-        $errors = [];
+        // $errors = [];
 
-        $this->logger->writeLog('Start Lunar polling');
+        // $this->logger->writeLog('Start Lunar polling');
 
-        /** 
-         * Placed orders older than 1 day are too old, so we don't check them.
-         */
-        $orders = $this->orderHelper->getOrdersFrom(new \DateTimeImmutable("-24 hours"));
-        $context = Context::createDefaultContext();
+        // /** 
+        //  * Placed orders older than 1 day are too old, so we don't check them.
+        //  */
+        // $orders = $this->orderHelper->getOrdersFrom(new \DateTimeImmutable("-24 hours"));
+        // $context = Context::createDefaultContext();
 
-        /** @var OrderEntity $order */
-        foreach ($orders as $order) {  
+        // /** @var OrderEntity $order */
+        // foreach ($orders as $order) {  
 
-            $orderId = $order->getId();
+        //     $orderId = $order->getId();
 
-            try {
+        //     try {
 
-                /** 
-                 * Make sure we don't have an authorization/capture for order transaction 
-                 * @var LunarTransaction|null $authorizedOrCapturedTransaction
-                 */
-                $lunarTransactionStates = [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE];
-                $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionStates, $context);
+        //         /** 
+        //          * Make sure we don't have an authorization/capture for order transaction 
+        //          * @var LunarTransaction|null $authorizedOrCapturedTransaction
+        //          */
+        //         $lunarTransactionStates = [OrderHelper::AUTHORIZE, OrderHelper::CAPTURE];
+        //         $authorizedOrCapturedTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionStates, $context);
                 
-                if ($authorizedOrCapturedTransaction) {
-                    continue;
-                }
+        //         if ($authorizedOrCapturedTransaction) {
+        //             continue;
+        //         }
 
-                $orderTransactions = $order->getTransactions();
+        //         $orderTransactions = $order->getTransactions();
 
-                /** @var OrderTransactionEntity|null $orderTransaction */
-                $orderTransaction = $orderTransactions->first();
+        //         /** @var OrderTransactionEntity|null $orderTransaction */
+        //         $orderTransaction = $orderTransactions->first();
 
-                if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId])) {
-                    continue;
-                }
+        //         if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId])) {
+        //             continue;
+        //         }
 
-                $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId]['code'];
+        //         $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$orderTransaction->paymentMethodId]['code'];
 
-                $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($order);
-                $orderNumber = $order->getOrderNumber();
+        //         $paymentIntentId = $this->orderHelper->getPaymentIntentFromOrder($order);
+        //         $orderNumber = $order->getOrderNumber();
 
-                $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
-                $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
+        //         $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
+        //         $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
 
 
-                if (!$fetchedTransaction) {
-                    $errors[$orderNumber][] = 'Fetch API transaction failed: no transaction with provided id: ' . $paymentIntentId;
-                    continue;
-                }
+        //         if (!$fetchedTransaction) {
+        //             $errors[$orderNumber][] = 'Fetch API transaction failed: no transaction with provided id: ' . $paymentIntentId;
+        //             continue;
+        //         }
 
-                if (!isset($fetchedTransaction['authorisationCreated'])) {
-                    continue;
-                }
+        //         if (!isset($fetchedTransaction['authorisationCreated'])) {
+        //             continue;
+        //         }
 
-                $transactionData = [
-                    [
-                        'orderId' => $orderId,
-                        'orderNumber' => $orderNumber,
-                        'transactionId' => $paymentIntentId,
-                        'transactionType' => OrderHelper::AUTHORIZE,
-                        'transactionCurrency' => $this->orderHelper->getCurrencyCode($order),
-                        'orderAmount' => $orderTransaction->amount->getTotalPrice(),
-                        'transactionAmount' => $orderTransaction->amount->getTotalPrice(),
-                        'paymentMethod' => $this->paymentMethodCode,
-                        'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
-                    ],
-                ];
-
-                
-                $this->lunarTransactionRepository->create($transactionData, $context);
+        //         $transactionData = [
+        //             [
+        //                 'orderId' => $orderId,
+        //                 'orderNumber' => $orderNumber,
+        //                 'transactionId' => $paymentIntentId,
+        //                 'transactionType' => OrderHelper::AUTHORIZE,
+        //                 'transactionCurrency' => $this->orderHelper->getCurrencyCode($order),
+        //                 'orderAmount' => $orderTransaction->amount->getTotalPrice(),
+        //                 'transactionAmount' => $orderTransaction->amount->getTotalPrice(),
+        //                 'paymentMethod' => $this->paymentMethodCode,
+        //                 'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
+        //             ],
+        //         ];
 
                 
-                $checkoutMode = $this->pluginHelper->getSalesChannelConfig('CaptureMode', $this->paymentMethodCode, $order->getSalesChannelId());
-                $isInstantMode = 'instant' == $checkoutMode;
-                $actionType = $isInstantMode ? OrderHelper::TRANSACTION_PAID : OrderHelper::TRANSACTION_AUTHORIZE;
+        //         $this->lunarTransactionRepository->create($transactionData, $context);
 
-                /** Changing order transaction state to "authorized" => nothing will happen */
-                $this->orderTransactionStateHandler->{$actionType}($orderTransaction->getId(), $context);
+                
+        //         $checkoutMode = $this->pluginHelper->getSalesChannelConfig('CaptureMode', $this->paymentMethodCode, $order->getSalesChannelId());
+        //         $isInstantMode = 'instant' == $checkoutMode;
+        //         $actionType = $isInstantMode ? OrderHelper::TRANSACTION_PAID : OrderHelper::TRANSACTION_AUTHORIZE;
 
-                (! $isInstantMode) 
-                    ? ($this->orderHelper->changeOrderState($orderId, OrderHelper::TRANSACTION_AUTHORIZED, $context))
-                    : null;
+        //         /** Changing order transaction state to "authorized" => nothing will happen */
+        //         $this->orderTransactionStateHandler->{$actionType}($orderTransaction->getId(), $context);
 
-                $this->logger->writeLog(['Polling success:', ['orderNumber' => $orderNumber]], false);
+        //         (! $isInstantMode) 
+        //             ? ($this->orderHelper->changeOrderState($orderId, OrderHelper::TRANSACTION_AUTHORIZED, $context))
+        //             : null;
 
-            } catch (\Exception $e) {
-                $errors[$orderNumber]['General exception'] = $e->getMessage();
-                // parse that bellow
-            }
-        }
+        //         $this->logger->writeLog(['Polling success:', ['orderNumber' => $orderNumber]], false);
 
-        if (!empty($errors)) {            
-            $this->logger->writeLog(['CRON ERRORS: ', json_encode($errors)]);
-        }
+        //     } catch (\Exception $e) {
+        //         $errors[$orderNumber]['General exception'] = $e->getMessage();
+        //         // parse that bellow
+        //     }
+        // }
+
+        // if (!empty($errors)) {            
+        //     $this->logger->writeLog(['CRON ERRORS: ', json_encode($errors)]);
+        // }
     }
 
     /**
