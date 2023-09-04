@@ -1,0 +1,38 @@
+{% block lunar_payment_history %}
+    <sw-card>
+
+        <div id="history-table-header">
+            <span id="history-table-title">
+                {{$tc("lunar-payment.paymentDetails.history.cardTitle")}}
+            </span>
+            {% block lunar_payment_history_actions %}
+                <lunar-payment-actions
+                    :orderId="orderId"
+                    :lunarTransactionId="lunarTransactionId"
+                    :lastTransactionType="lastTransactionType"
+                    @reload="reloadPaymentDetails"
+                >
+                </lunar-payment-actions>
+            {% endblock %}
+        </div>
+
+        <hr>
+
+        {% block lunar_payment_history_container %}
+            <template #grid>
+                {% block lunar_payment_history_data_grid %}
+                    <sw-data-grid
+                        :dataSource="data"
+                        :columns="columns"
+                        :showSelection="false"
+                        :compactMode="true"
+                        :showActions="false"
+                        sortBy="index"
+                    >
+                    </sw-data-grid>
+                {% endblock %}
+
+            </template>
+        {% endblock %}
+    </sw-card>
+{% endblock %}

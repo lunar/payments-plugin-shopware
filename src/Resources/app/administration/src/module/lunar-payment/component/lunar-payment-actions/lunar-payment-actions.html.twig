@@ -1,0 +1,45 @@
+{% block lunar_payment_actions %}
+
+    <div id="lunar-payment-actions">
+        <sw-button-process
+            id="captureButton"
+            v-if="isCapturePossible"
+            :disabled="false"
+            :isLoading="isLoading"
+            :processSuccess="isSuccessful"
+            @click="capturePayment"
+        >
+            {{ $tc("lunar-payment.paymentDetails.actions.captureButton") }}
+        </sw-button-process>
+
+        <sw-button-process
+            id="refundButton"
+            v-if="isRefundPossible"
+            :disabled="false"
+            :isLoading="isLoading"
+            :processSuccess="isSuccessful"
+            @click="refundPayment"
+        >
+            {{ $tc("lunar-payment.paymentDetails.actions.refundButton") }}
+        </sw-button-process>
+
+        <sw-button-process
+            id="voidButton"
+            v-if="isVoidPossible"
+            :disabled="false"
+            :isLoading="isLoading"
+            :processSuccess="isSuccessful"
+            @click="voidPayment"
+        >
+            {{ $tc("lunar-payment.paymentDetails.actions.voidButton") }}
+        </sw-button-process>
+
+        <sw-button
+            id="orderCompleteButton"
+            v-if="!isCapturePossible && !isRefundPossible"
+            :disabled="true">
+            {{ $tc("lunar-payment.paymentDetails.actions.defaultButton") }}
+        </sw-button>
+    </div>
+
+{% endblock %}

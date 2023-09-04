@@ -1,0 +1,34 @@
+{
+    "name": "lunar/plugin-shopware-6",
+    "description": "Secure payment with credit card via Lunar",
+    "version": "1.0.0",
+    "type": "shopware-platform-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lunar",
+            "email": "support@lunar.app"
+        }
+    ],
+    "require": {
+        "shopware/core": "6.4.*",
+        "shopware/administration": "6.4.*",
+        "shopware/storefront": "6.4.*"
+    },
+    "extra": {
+        "shopware-plugin-class": "Lunar\\Payment\\LunarPayment",
+        "label": {
+            "de-DE": "Cards - Lunar",
+            "en-GB": "Cards - Lunar"
+        },
+        "description": {
+            "de-DE": "Secure payment with credit card via Lunar",
+            "en-GB": "Secure payment with credit card via Lunar"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Lunar\\Payment\\": "src/"
+        }
+    }
+}

@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>Lunar Configuration</title>
+        <name>lunar_configuration</name>
+
+        <input-field type="single-select">
+            <name>transactionMode</name>
+            <label>Transaction Mode</label>
+            <options>
+                <option>
+                    <id>live</id>
+                    <name>Live mode</name>
+                </option>
+                <option>
+                    <id>test</id>
+                    <name>Test mode</name>
+                </option>
+            </options>
+            <defaultValue>live</defaultValue>
+        </input-field>
+
+        <input-field>
+            <name>testModePublicKey</name>
+            <label>Test mode Public Key</label>
+        </input-field>
+        <input-field>
+            <name>testModeAppKey</name>
+            <label>Test mode App Key</label>
+        </input-field>
+
+        <input-field>
+            <name>liveModePublicKey</name>
+            <label>Public Key</label>
+            <helpText></helpText>
+        </input-field>
+        <input-field>
+            <name>liveModeAppKey</name>
+            <label>App Key</label>
+            <helpText></helpText>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>captureMode</name>
+            <label>Capture Mode</label>
+            <helpText>In Delayed mode the capture will be done manually from admin panel. In Instant mode the capture will be done automatically</helpText>
+            <options>
+                <option>
+                    <id>delayed</id>
+                    <name>Delayed</name>
+                </option>
+                <option>
+                    <id>instant</id>
+                    <name>Instant</name>
+                </option>
+            </options>
+            <defaultValue>delayed</defaultValue>
+        </input-field>
+
+        <input-field>
+            <name>popupTitle</name>
+            <label>Popup title</label>
+            <helpText>The title for the payment modal</helpText>
+        </input-field>
+        <input-field>
+            <name>popupDescription</name>
+            <label>Popup description</label>
+            <helpText>The description for the payment modal</helpText>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Miscellaneous</title>
+        <name>payment_miscellaneous</name>
+
+        <input-field type="multi-select">
+            <name>supportedCards</name>
+            <label>Supported cards</label>
+            <options>
+                <option>
+                    <id>visa</id>
+                    <name>Visa</name>
+                </option>
+                <option>
+                    <id>visaelectron</id>
+                    <name>Visaelectron</name>
+                </option>
+                <option>
+                    <id>mastercard</id>
+                    <name>Mastercard</name>
+                </option>
+                <option>
+                    <id>maestro</id>
+                    <name>Maestro</name>
+                </option>
+            </options>
+        </input-field>
+
+        <!-- <input-field type="single-select">
+            <name>showLunarTransactionInOrderList</name>
+            <label>Show Lunar transaction ID in order list (as separate column)</label>
+            <options>
+                <option>
+                    <id>0</id>
+                    <name>Hidden</name>
+                </option>
+                <option>
+                    <id>1</id>
+                    <name>Show</name>
+                </option>
+            </options>
+            <defaultValue>0</defaultValue>
+        </input-field> -->
+    </card>
+
+</config>

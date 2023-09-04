@@ -1,0 +1,13 @@
+{% block sw_settings_content_card_slot_plugins %}
+    {% parent %}
+
+    <sw-settings-item
+        :label="$tc('lunar-payment.general.mainMenuItemGeneral')"
+        :to="{ name: 'lunar.payment.settings.index' }"
+        :backgroundEnabled="false"
+    >
+        <template #icon>
+            <img class="lunar-settings-icon" :src="'lunarpayment/plugin.png' | asset">
+        </template>
+    </sw-settings-item>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+
+{% set isAuthorizationError = 'AUTHORIZATION_ERROR' === page.getErrorCode() %}
+{% set isCaptureError = 'CAPTURE_ERROR' === page.getErrorCode() %}
+
+{% block page_checkout_confirm_alerts %}
+    {{ parent() }}
+
+    <div id="payment-errors">
+        {% if isAuthorizationError %}
+            {% sw_include '@Storefront/storefront/utilities/alert.html.twig' with {
+                type: "danger",
+                content: 'Transaction authorization failed.'
+            } %}
+        {% elseif  isCaptureError %}
+            {% sw_include '@Storefront/storefront/utilities/alert.html.twig' with {
+                type: "danger",
+                content: 'Transaction capture failed.'
+            } %}
+        {% endif %}
+    </div>
+
+{% endblock %}
+
+
+{% block page_checkout_confirm_form_submit %}
+    {{ parent() }}
+
+    {% if context.paymentMethod.id === '1a9bc76a3c244278a51a2e90c1e6f040' %}
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+                integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous">
+        </script>
+        <script type="text/javascript" src="https://sdk.paylike.io/a.js"></script>
+
+        <script type="text/javascript">
+            jQuery(document).ready(function () {
+                // disable button in case of an error
+                {% if isAuthorizationError || isCaptureError %}
+                    jQuery('#confirmOrderForm > button[type=submit]').attr('disabled', true);
+                {% endif %}
+
+                /**
+                 * Prevent submit if TOS not accepted
+                 * (this also prevents double payment because the "tos must be accepted" error
+                 * is shown after payment with this plugin)
+                 */
+                handleTosCheckbox(jQuery('#tos').prop('checked'));
+
+                jQuery('#tos').on('change', function(event) {
+                    handleTosCheckbox(event.target.checked);
+                });
+
+                jQuery('#confirmOrderForm > button[type=submit]').on('click', function(event) {
+                    event.preventDefault();
+
+                    const lunarData = {{ page.lunar | json_encode|raw }};
+
+                    const sdkClient = Paylike({key: lunarData.public_key });
+
+                    sdkClient.pay({
+                        test: ('live' === lunarData.plugin_mode) ? (false) : (true),
+                        title: lunarData.popup_title,
+                        description: lunarData.popup_description,
+                        amount: {
+                            currency: lunarData.currency_code,
+                            exponent: lunarData.currency_exponent,
+                            value: lunarData.amount_value,
+                        },
+                        locale: lunarData.language,
+                        custom: {
+                            email: lunarData.email,
+                            products: lunarData.products,
+                            customer: {
+                                name: lunarData.name,
+                                email: lunarData.email,
+                                phoneNo: lunarData.phone,
+                                address: lunarData.address,
+                                IP: lunarData.ip
+                            },
+                            platform: {
+                                'Shopware 6': lunarData.shopware_version
+                            },
+                            pluginVersion: {
+                                'Lunar': lunarData.plugin_version
+                            }
+                        }
+                    }, function(err, res) {
+                        if (err) return console.log(err);
+
+                        if (res.transaction.id === undefined && res.transaction.id === "") {
+                            // show error message
+                        } else {
+                            jQuery('#lunar_transaction_id').val(res.transaction.id);
+                            jQuery('#confirmOrderForm').submit();
+                        }
+                    });
+                });
+            });
+
+            /**
+             *
+             */
+            function handleTosCheckbox(checkboxState) {
+                if (checkboxState !== true) {
+                    jQuery('#confirmOrderForm > button[type=submit]').attr('disabled', true);
+                } else {
+                    jQuery('#confirmOrderForm > button[type=submit]').removeAttr('disabled');
+                }
+            }
+        </script>
+
+        <input type="hidden" form="confirmOrderForm" id="lunar_transaction_id" name="lunar_transaction_id">
+
+    {% endif %}
+
+{% endblock %}

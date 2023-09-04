@@ -1,0 +1,8 @@
+{
+    "name": "lunar-payment",
+    "version": "1.0.0",
+    "description": "Lunar administration scripts",
+    "main": "index.js",
+    "author": "Lunar",
+    "license": "MIT"
+}

@@ -1,0 +1,1 @@
+# Shopware 6 plugin for Lunar

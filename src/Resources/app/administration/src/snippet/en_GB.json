@@ -1,0 +1,78 @@
+{
+    "lunar-payment": {
+        "title": "Cards - Lunar",
+        "general": {
+            "mainMenuItemGeneral": "Lunar Payment",
+            "descriptionTextModule": "Settings for Lunar Payment"
+        },
+        "settings": {
+            "save": "Save",
+            "titleSuccess": "Success",
+            "titleError": "Error",
+            "generalSuccess": "All settings were saved.",
+            "generalError": "An error occurred. Please verify fields data and try again.",
+            "generalSaveError": "An error occurred during save settings. Please verify fields data and try again.",
+            "liveAppKeyInvalid": "The App key is invalid",
+            "livePublicKeyInvalid": "The Public key is invalid",
+            "testAppKeyInvalid": "The test App key is invalid",
+            "testPublicKeyInvalid": "The test Public key is invalid"
+        },
+        "messageNotBlank": "This field must not be empty.",
+        "transactionId": "transaction ID",
+        "orderTransactionState": "Order transaction state",
+        "error": {
+            "transaction": {
+                "notFound": "No matching transaction could be found",
+                "orderNotFound": "No matching order could be found"
+            }
+        },
+        "paymentDetails": {
+            "history": {
+                "cardTitle": "Lunar Payment History",
+                "column": {
+                    "type": "Type",
+                    "transactionId": "Transaction ID",
+                    "currencyCode": "Currency",
+                    "orderAmount": "Order Amount",
+                    "transactionAmount": "Transaction Amount",
+                    "date": "Date"
+                },
+                "type": {
+                    "authorize": "Authorize",
+                    "capture": "Capture",
+                    "refund": "Refund",
+                    "void": "Void (Cancel)",
+                    "default": ""
+                }
+            },
+            "actions": {
+                "captureButton": "Capture",
+                "refundButton": "Refund",
+                "voidButton": "Void (Cancel)",
+                "defaultButton": "Order is complete"
+            },
+            "notifications": {
+                "genericErrorMessage": "An error has occurred!",
+
+                "captureSuccessTitle": "Capture success!",
+                "captureSuccessMessage": "The capture of the payment was successful.",
+                "captureErrorTitle": "Capture Error!",
+
+                "refundSuccessTitle": "Refund success!",
+                "refundSuccessMessage": "The refund was successfully completed.",
+                "refundErrorTitle": "Refund Error!",
+
+                "voidSuccessTitle": "Void (cancel) success!",
+                "voidSuccessMessage": "Void (cancelation) of the payment was successful.",
+                "voidErrorTitle": "Void (cancel) Error!",
+
+                "couldNotRetrieveMessage": "The payment details could not be retrieved, please check the log files for more information.",
+                "paymentMissingError": "Payment could not be found",
+                "orderHaveOtherPayments": "Order have payments processed by other providers"
+            }
+        },
+        "order-list": {
+            "transactionId": "Lunar transaction ID"
+        }
+    }
+}

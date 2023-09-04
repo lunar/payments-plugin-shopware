@@ -1,0 +1,16 @@
+{% block sw_order_list_grid_columns %}
+    {% parent %}
+
+    {% block lunar_payment_column_transaction %}
+        <template #column-lunarPaymentTransactionId="{ item }">
+            <b
+                v-if="item.transactions
+                        && item.transactions.last()
+                        && item.transactions.last().customFields
+                        && item.transactions.last().customFields.lunar_transaction_id"
+            >
+                {{ item.transactions.last().customFields.lunar_transaction_id }}
+            </b>
+        </template>
+    {% endblock %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% block lunar_payment_payment_details %}
+
+    <div class="lunar-payment-detail">
+
+        <div v-if="!isLoading">
+            {% block lunar_payment_payment_details_content %}
+                <template v-if="lunarTransactions">
+
+                    {% block lunar_payment_payment_details_content_payment_history %}
+                        <lunar-payment-history
+                            :lunarTransactions="lunarTransactions"
+                            :orderId="this.$route.params.id"
+                            @reload="reloadPaymentDetails">
+                        </lunar-payment-history>
+                    {% endblock %}
+
+                </template>
+            {% endblock %}
+        </div>
+
+        <sw-loader v-if="isLoading"></sw-loader>
+    </div>
+{% endblock %}

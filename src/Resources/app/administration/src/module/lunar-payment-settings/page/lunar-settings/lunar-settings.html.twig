@@ -1,0 +1,106 @@
+{% block lunar_settings %}
+<sw-page class="lunar-settings">
+
+    {% block lunar_settings_header %}
+    <template #smart-bar-header>
+        <h2>
+            {{ $tc('sw-settings.index.title') }}
+            <sw-icon name="small-arrow-medium-right" small></sw-icon>
+            {{ $tc('lunar-payment.title') }}
+        </h2>
+    </template>
+    {% endblock %}
+
+    {% block lunar_settings_actions %}
+    <template #smart-bar-actions>
+        {% block lunar_settings_actions_save %}
+        <sw-button-process
+                class="sw-settings-login-registration__save-action"
+                :isLoading="isLoading"
+                :processSuccess="isSaveSuccessful"
+                :disabled="isLoading"
+                variant="primary"
+                @process-finish="saveFinish"
+                @click="onSave">
+            {{ $tc('lunar-payment.settings.save') }}
+        </sw-button-process>
+        {% endblock %}
+    </template>
+    {% endblock %}
+
+    {% block lunar_settings_content %}
+    <template #content>
+
+        <sw-card-view>
+
+            <sw-system-config
+                class="lunar-config__wrapper"
+                ref="systemConfig"
+                salesChannelSwitchable
+                inherit
+                @config-changed="onConfigChange"
+                domain="LunarPayment.settings">
+
+                <template #card-element="{element, config, card}">
+
+                <div v-show="hideField(element)">
+
+                        <sw-form-field-renderer
+                            v-if="!element.name.includes('transactionMode') || !element.name.includes('supportedCards') || !element.name.includes('captureMode') || !element.name.includes('showLunarTransactionInOrderList')"
+                            v-bind="getElementBind(getBind(element, config))"
+                            v-model="config[element.name]"
+                        />
+
+                        <sw-form-field-renderer
+                            v-else-if="element.name.includes('transactionMode')"
+                            :config="{
+                                componentName: 'sw-single-select',
+                                label: getInlineSnippet(getElementBind(getBind(element, config)).config.label),
+                                helpText: getInlineSnippet(getElementBind(getBind(element, config)).config.helpText),
+                            }"
+                            v-model="config[element.name]"
+                        />
+
+                        <sw-form-field-renderer
+                            v-else-if="element.name.includes('captureMode')"
+                            :config="{
+                                componentName: 'sw-single-select',
+                                label: getInlineSnippet(getElementBind(getBind(element, config)).config.label),
+                                helpText: getInlineSnippet(getElementBind(getBind(element, config)).config.helpText),
+                            }"
+                            v-model="config[element.name]"
+                        />
+
+                        <sw-form-field-renderer
+                            v-else-if="element.name.includes('supportedCards')"
+                            :config="{
+                                componentName: 'sw-multi-select',
+                                label: getInlineSnippet(getElementBind(getBind(element, config)).config.label),
+                                helpText: getInlineSnippet(getElementBind(getBind(element, config)).config.helpText),
+                            }"
+                            v-model="config[element.name]"
+                        />
+
+                        <sw-form-field-renderer
+                            v-else-if="element.name.includes('showLunarTransactionInOrderList')"
+                            :config="{
+                                componentName: 'sw-single-select',
+                                label: getInlineSnippet(getElementBind(getBind(element, config)).config.label),
+                                helpText: getInlineSnippet(getElementBind(getBind(element, config)).config.helpText),
+                            }"
+                            v-model="config[element.name]"
+                        />
+
+                    </div>
+
+                </template>
+
+            </sw-system-config>
+
+        </sw-card-view>
+
+    </template>
+    {% endblock %}
+
+</sw-page>
+{% endblock %}

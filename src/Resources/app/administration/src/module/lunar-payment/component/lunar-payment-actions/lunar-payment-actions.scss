@@ -1,0 +1,25 @@
+#lunar-payment-actions {
+    margin-left: 1rem;
+    float: right;
+}
+#lunar-payment-actions .sw-button {
+    margin-left: 0.5rem;
+}
+
+#captureButton {
+    background-color: #004f43;
+    color: #fff;
+}
+
+#refundButton {
+    background-color: #ccb2ad;
+}
+
+#voidButton {
+    background-color: #000;
+    color: #fff;
+}
+
+#orderCompleteButton {
+    background-color: #004f43;
+}
