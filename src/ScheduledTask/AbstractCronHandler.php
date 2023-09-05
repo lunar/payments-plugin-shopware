@@ -2,6 +2,7 @@
 
 namespace Lunar\Payment\ScheduledTask;
 
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
@@ -16,6 +17,7 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
 /**
  * 
  */
+#[AsMessageHandler]
 abstract class AbstractCronHandler extends ScheduledTaskHandler
 {
     public function __construct(
@@ -46,7 +48,7 @@ abstract class AbstractCronHandler extends ScheduledTaskHandler
         set_error_handler([$this, 'handleError']);
 
         try {
-            parent::handle($task);
+            method_exists(parent::class, 'handle') ? parent::handle($task) : parent::__invoke($task);
         } catch(\Throwable $e) {
             $this->logException($e);
         } finally {
@@ -63,11 +65,19 @@ abstract class AbstractCronHandler extends ScheduledTaskHandler
 
     public function logException(\Throwable $e): void
     {
-        $message =
-            $e->getMessage() . "\n in " .
-            $e->getFile() . "\n line " .
-            $e->getLine() . "\n" . $e->getTraceAsString();
+        $message = $e->getMessage();
+
+        // Don't log useless messages
+        if (str_contains($e->getMessage(), 'deprecated') && !str_contains($e->getMessage(), 'Lunar')) {
+            return;
+
+        } else {
+            $message .= "\n in " .
+                $e->getFile() . "\n line " .
+                $e->getLine() . "\n" . $e->getTraceAsString();
+        }
+
             
-        $this->logger->writeLog($message);
+        $this->logger->writeLog($message, false);
     }
 }

@@ -69,11 +69,6 @@
             <label>Shop title</label>
         </input-field>
 
-        <input-field>
-            <name>cardDescription</name>
-            <label>Description</label>
-        </input-field>
-
         <input-field type="multi-select">
             <name>cardAcceptedCards</name>
             <label>Accepted cards</label>
@@ -171,10 +166,17 @@
             <label>Shop title</label>
         </input-field>
 
-        <input-field>
-            <name>mobilePayDescription</name>
-            <label>Description</label>
-        </input-field>
+    </card>
+
+    <card>
+        <title>Miscellaneous</title>
+        <name>lunar_miscellaneous</name>
+
+        <component name="sw-switch-field">
+            <name>logsEnabled</name>
+            <bordered>bordered</bordered>
+            <label>Enable the Lunar transaction log for debugging</label>
+        </component>
 
     </card>
 

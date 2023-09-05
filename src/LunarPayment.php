@@ -104,7 +104,9 @@ class LunarPayment extends Plugin
 
         foreach (PluginHelper::LUNAR_PAYMENT_METHODS as $paymentMethodUuid => $paymentMethod) {
 
-            /** Set defaults only in install context to not interfere with existing user settings */
+            /** 
+             * Set defaults only in install context to not interfere with existing user settings 
+             */
             $installContext ? $this->setConfigDefaults($paymentMethod) : null;
 
             $paymentMethodName = ucfirst($paymentMethod['code']);
@@ -199,7 +201,9 @@ class LunarPayment extends Plugin
         $config->set($configPath . 'TransactionMode', PluginHelper::TRANSACTION_MODE);
         $config->set($configPath . 'CaptureMode', PluginHelper::CAPTURE_MODE);
         $config->set($configPath . 'ShopTitle', $config->get('core.basicInformation.shopName'));
-        $config->set($configPath . 'Description', $paymentMethodDefaults['description']);
+
+        // plugin global setting
+        $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'logsEnabled', false);
     }
 
     /**

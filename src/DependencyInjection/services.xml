@@ -22,7 +22,9 @@
             <argument type="service" id="currency.repository" />
         </service>
 
-        <service id="Lunar\Payment\Helpers\LogHelper"></service>
+        <service id="Lunar\Payment\Helpers\LogHelper">
+            <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
+        </service>
 
 
         <!-- Handler & controllers -->
@@ -76,6 +78,7 @@
             <argument type="service" id="Lunar\Payment\Helpers\LogHelper"/>
             <argument type="service" id="Lunar\Payment\Helpers\OrderHelper"/>
             <argument type="service" id="Lunar\Payment\Helpers\PluginHelper"/>
+
             <tag name="kernel.event_subscriber"/>
         </service>
 

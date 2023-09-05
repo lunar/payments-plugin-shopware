@@ -10,7 +10,6 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-// use Shopware\Core\Framework\Api\Exception\ExceptionFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
@@ -111,12 +110,12 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                 continue;
             }
 
-            $lunarTransactionId = $previousLunarTransaction->getTransactionId();
+            $paymentIntentId = $previousLunarTransaction->getTransactionId();
 
             try {
 
                 $apiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
-                $fetchedTransaction = $apiClient->payments()->fetch($lunarTransactionId);
+                $fetchedTransaction = $apiClient->payments()->fetch($paymentIntentId);
 
                 if (!$fetchedTransaction) {
                     $errors[$orderNumber][] = 'Fetch API transaction failed: no transaction with provided id: ' . $transactionId;
@@ -133,7 +132,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                     ],
                 ];
 
-                $apiResult = $apiClient->payments()->{$actionType}($lunarTransactionId, $apiTransactionData);
+                $apiResult = $apiClient->payments()->{$actionType}($paymentIntentId, $apiTransactionData);
 
                 $this->logger->writeLog([strtoupper($actionType) . ' request data: ', $apiTransactionData], false);
 
@@ -146,7 +145,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
                     [
                         'orderId' => $orderId,
                         'orderNumber' => $orderNumber,
-                        'transactionId' => $lunarTransactionId,
+                        'transactionId' => $paymentIntentId,
                         'transactionType' => $actionType,
                         'transactionCurrency' => $currencyCode,
                         'orderAmount' => $totalPrice,
@@ -166,10 +165,14 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
             }
         }
 
+        /**
+         * @TODO find a way to show some exception messages to customers
+         * 
+         * We are not throwing any exceptions because exceptions will be displayed as json for customer
+         * and exceptions thrown as \Exception will not be shown
+         */
         if (!empty($errors)) {            
-            $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            // throw new ExpectationFailedException($errors); // SW 6.5
-            throw new \Exception(json_encode($errors));
+            $this->logger->writeLog(['ORDER TRANSACTION STATE CHANGE ERRORS: ', json_encode($errors)]);
         }
     }
 
