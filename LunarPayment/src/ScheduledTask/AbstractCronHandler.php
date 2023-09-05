@@ -2,6 +2,7 @@
 
 namespace Lunar\Payment\ScheduledTask;
 
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 
 use Shopware\Core\System\SystemConfig\SystemConfigService;
@@ -16,6 +17,7 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
 /**
  * 
  */
+#[AsMessageHandler]
 abstract class AbstractCronHandler extends ScheduledTaskHandler
 {
     public function __construct(

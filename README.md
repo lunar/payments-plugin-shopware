@@ -66,7 +66,6 @@ Under the Shopware Lunar payment method Shop settings, you can:
   * Allow payment methods to be available when change payment method by customer (not available for the moment in this plugin)
   * Establish availability rule for payment methods
 
-#### NOTE1: the plugin logs are enabled by default and cannot be changed (for the moment)
 
  ## How to
 

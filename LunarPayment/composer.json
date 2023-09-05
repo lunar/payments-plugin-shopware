@@ -1,7 +1,7 @@
 {
     "name": "lunar/plugin-shopware-6",
-    "description": "Secure payment with credit card via Lunar",
-    "version": "2.0.0",
+    "description": "Lunar Online Payments for Shopware",
+    "version": "2.1.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
@@ -23,8 +23,8 @@
             "en-GB": "Lunar Payment"
         },
         "description": {
-            "de-DE": "Secure payment with credit card via Lunar",
-            "en-GB": "Secure payment with credit card via Lunar"
+            "de-DE": "Lunar Online Payments for Shopware",
+            "en-GB": "Lunar Online Payments for Shopware"
         }
     },
     "autoload": {
