@@ -69,11 +69,6 @@
             <label>Shop title</label>
         </input-field>
 
-        <input-field>
-            <name>cardDescription</name>
-            <label>Description</label>
-        </input-field>
-
         <input-field type="multi-select">
             <name>cardAcceptedCards</name>
             <label>Accepted cards</label>
@@ -169,11 +164,6 @@
         <input-field>
             <name>mobilePayShopTitle</name>
             <label>Shop title</label>
-        </input-field>
-
-        <input-field>
-            <name>mobilePayDescription</name>
-            <label>Description</label>
         </input-field>
 
     </card>

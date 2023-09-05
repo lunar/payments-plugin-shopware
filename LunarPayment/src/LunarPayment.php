@@ -201,9 +201,8 @@ class LunarPayment extends Plugin
         $config->set($configPath . 'TransactionMode', PluginHelper::TRANSACTION_MODE);
         $config->set($configPath . 'CaptureMode', PluginHelper::CAPTURE_MODE);
         $config->set($configPath . 'ShopTitle', $config->get('core.basicInformation.shopName'));
-        $config->set($configPath . 'Description', $paymentMethodDefaults['description']);
 
-        // global setting
+        // plugin global setting
         $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'logsEnabled', false);
     }
 

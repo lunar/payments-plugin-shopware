@@ -9,6 +9,7 @@ The software is provided “as is”, without warranty of any kind, express or i
 
 ## Features
 * Automatic capture/refund/cancel on order payment status change
+* Automatic check for unpaid orders using cron (task scheduler)
 
 ## Automatic installation
 
@@ -50,12 +51,10 @@ Under the Shopware Lunar payment method config (`/admin#/sw/extension/my-extensi
 
 
 Under the Shopware Lunar payment method settings (`/admin#/lunar/payment/settings/index`), you can:
-  * Activate/deactivate the payment method from plugin
-  * Update the payment method name & description in the payment methods settings
-  * Update shop title that shows up in the hosted checkout page 
-  * Update payment method description that shows up in the shopware checkout page 
   * Add app & public keys
   * Change the capture mode (Instant/Delayed)
+  * Update shop title that shows up in the hosted checkout page
+  * Enable/disable plugin logs
 
 Under the Shopware Lunar payment method Shop settings, you can:
   * Activate/deactivate plugin payment methods
@@ -94,6 +93,8 @@ Under the Shopware Lunar payment method Shop settings, you can:
 
 #
 ## Changelog
+
+2.1.0 - Enabled cron & added enable/disable logs switch
 
 2.0.0 - Switched to hosted checkout flow & added MobilePay payment method
 
