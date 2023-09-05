@@ -78,6 +78,7 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
                 $errorKey = "Order number -> $orderNumber";
 
                 if (!$paymentIntentId) {
+                    $errors[$errorKey][] = 'No payment intent ID on order.';
                     continue;
                 }
 
@@ -109,7 +110,6 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 
                 
                 $this->lunarTransactionRepository->create($transactionData, $context);
-file_put_contents("/var/www/html/var/log/zzz.log", json_encode('HERERER', JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
                 
                 $checkoutMode = $this->pluginHelper->getSalesChannelConfig('CaptureMode', $this->paymentMethodCode, $order->getSalesChannelId());
                 $isInstantMode = 'instant' == $checkoutMode;
