@@ -26,7 +26,7 @@ let moduleConfig = {
     description: 'Lunar Payment plugin',
     version: '1.0.0',
     targetVersion: '1.0.0',
-    icon: 'default-action-settings',
+    icon: 'regular-cog',
 
     snippets: {
         'en-GB': enGB

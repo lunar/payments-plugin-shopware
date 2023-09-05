@@ -12,7 +12,6 @@ Component.register('lunar-payment-history', {
         return {
             isLoading: false,
             isSuccessful: false,
-            amountInMinor: 0,
             lunarTransactionId: '',
             transactionCurrency: '',
             lastTransactionType: ''
@@ -53,7 +52,6 @@ Component.register('lunar-payment-history', {
                 /** Set last transaction details to be available into actions component. */
                 if (key == lastTransactionId) {
                     self.lastTransactionType = lunarTransaction.transactionType;
-                    self.amountInMinor = lunarTransaction.amountInMinor;
                     self.lunarTransactionId = lunarTransaction.transactionId;
                     self.transactionCurrency = lunarTransaction.transactionCurrency;
                 }
@@ -124,8 +122,8 @@ Component.register('lunar-payment-history', {
                     return this.$tc('lunar-payment.paymentDetails.history.type.capture');
                 case 'refund':
                     return this.$tc('lunar-payment.paymentDetails.history.type.refund');
-                case 'void':
-                    return this.$tc('lunar-payment.paymentDetails.history.type.void');
+                case 'cancel':
+                    return this.$tc('lunar-payment.paymentDetails.history.type.cancel');
                 default:
                     return this.$tc('lunar-payment.paymentDetails.history.type.default');
             }

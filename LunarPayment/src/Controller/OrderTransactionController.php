@@ -7,7 +7,6 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-use Shopware\Core\Defaults;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
@@ -17,10 +16,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler;
 
-use Paylike\Paylike as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
-use Lunar\Payment\Helpers\PluginHelper;
-use Lunar\Payment\Helpers\CurrencyHelper;
 use Lunar\Payment\Helpers\LogHelper as Logger;
 
 /**
@@ -30,50 +26,22 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
  */
 class OrderTransactionController extends AbstractController
 {
-    private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
-
-    /** @var EntityRepository */
-    private $stateMachineHistory;
-
-    /** @var StateMachineRegistry */
-    private $stateMachineRegistry;
-
-    /** @var OrderTransactionStateHandler */
-    private $transactionStateHandler;
-
-    /** @var EntityRepository */
-    private $lunarTransactionRepository;
-
-    /** @var OrderHelper */
-    private $orderHelper;
-
-    /** @var SystemConfigService */
-    private $systemConfigService;
-
-    /** @var Logger */
-    private $logger;
-
-
-    /**
-     * Constructor
-     */
     public function __construct(
-        EntityRepository $stateMachineHistory,
-        StateMachineRegistry $stateMachineRegistry,
-        OrderTransactionStateHandler $transactionStateHandler,
-        EntityRepository $lunarTransactionRepository,
-        OrderHelper $orderHelper,
-        SystemConfigService $systemConfigService,
-        Logger $logger
-    )
-    {
+        private EntityRepository $stateMachineHistory,
+        private StateMachineRegistry $stateMachineRegistry,
+        private OrderTransactionStateHandler $transactionStateHandler,
+        private EntityRepository $lunarTransactionRepository,
+        private SystemConfigService $systemConfigService,
+        private Logger $logger,
+        private OrderHelper $orderHelper
+    ) {
         $this->stateMachineHistory = $stateMachineHistory;
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->transactionStateHandler = $transactionStateHandler;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
-        $this->orderHelper = $orderHelper;
         $this->systemConfigService = $systemConfigService;
         $this->logger = $logger;
+        $this->orderHelper = $orderHelper;
     }
 
     /**
@@ -97,163 +65,50 @@ class OrderTransactionController extends AbstractController
     }
 
     /**
-     * VOID / CANCEL
+     * CANCEL
      *
-     * @Route("/api/lunar/void", name="api.action.lunar.void", methods={"POST"})
+     * @Route("/api/lunar/cancel", name="api.action.lunar.cancel", methods={"POST"})
      */
-    public function void(Request $request, Context $context): JsonResponse
+    public function cancel(Request $request, Context $context): JsonResponse
     {
-        return $this->processPaymentAction($request, $context, 'void');
+        return $this->processPaymentAction($request, $context, 'cancel');
     }
 
 
     /**
-     * @TODO unify code with that from \Subscriber\OrderTransactionStateChangeSubscriber.php
      *
      */
     private function processPaymentAction(
-                                            Request $request,
-                                            Context $context,
-                                            string $actionType
-    ): JsonResponse
-    {
+        Request $request,
+        Context $context,
+        string $actionType
+    ): JsonResponse {
 
         switch ($actionType) {
-            case OrderHelper::CAPTURE_STATUS:
-                $lunarTransactionState = OrderHelper::AUTHORIZE_STATUS;
-                $orderTransactionStateToCheck = OrderHelper::TRANSACTION_AUTHORIZED;
-                $orderTransactionAction = OrderHelper::TRANSACTION_PAID;
-                $amountToCheck = 'pendingAmount';
+            case OrderHelper::CAPTURE:
+                $transactionAction = OrderHelper::TRANSACTION_PAID;
                 break;
-            case OrderHelper::REFUND_STATUS:
-                $lunarTransactionState = OrderHelper::CAPTURE_STATUS;
-                $orderTransactionStateToCheck = OrderHelper::TRANSACTION_PAID;
-                $orderTransactionAction = OrderHelper::TRANSACTION_REFUND;
-                $amountToCheck = 'capturedAmount';
+            case OrderHelper::REFUND:
+                $transactionAction = OrderHelper::TRANSACTION_REFUND;
                 break;
-            case OrderHelper::VOID_STATUS:
-                $lunarTransactionState = OrderHelper::AUTHORIZE_STATUS;
-                $orderTransactionStateToCheck = OrderHelper::TRANSACTION_AUTHORIZED;
-                $orderTransactionAction = OrderHelper::TRANSACTION_VOID;
-                $amountToCheck = 'pendingAmount';
+            case OrderHelper::CANCEL:
+                $transactionAction = OrderHelper::TRANSACTION_CANCEL;
                 break;
         }
 
-        $actionType = ucfirst($actionType);
-        $actionTypeAllCaps = strtoupper($actionType);
-
         $params = $request->request->all()['params'];
         $orderId = $params['orderId'];
-        $lunarTransactionId = $params['lunarTransactionId'];
 
         try {
             $order = $this->orderHelper->getOrderById($orderId, $context);
 
-            $lastOrderTransaction = $order->transactions->last();
-
-            $transactionStateName = $lastOrderTransaction->getStateMachineState()->technicalName;
+            $lastOrderTransaction = $order->transactions->last(); // @TODO check this if needs first()
 
             /**
-             * Get lunar transaction
+             * Change order transaction state.
+             * The event will be processed in Lunar\Payment\Subscriber\OrderTransactionStateChangeSubscriber
              */
-            $criteria = new Criteria();
-            $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-            $criteria->addFilter(new EqualsFilter('transactionType',  $lunarTransactionState));
-
-            $lunarTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
-
-            if (!$lunarTransaction || $orderTransactionStateToCheck != $transactionStateName) {
-                return new JsonResponse([
-                    'status'  => false,
-                    'message' => 'Error',
-                    'code'    => 0,
-                    'errors'=> [$actionType . ' failed. Not lunar transaction or payment not ' . $orderTransactionStateToCheck],
-                ], 400);
-            }
-
-            /**
-             * Instantiate Api Client
-             * Fetch transaction
-             * Check amount & currency
-             * Proceed with payment capture
-             */
-            $privateApiKey = $this->getApiKey($order);
-            $apiClient = new ApiClient($privateApiKey);
-            $fetchedTransaction = $apiClient->transactions()->fetch($lunarTransactionId);
-
-            if (!$fetchedTransaction) {
-                return new JsonResponse([
-                    'status'  => false,
-                    'message' => 'Error',
-                    'code'    => 0,
-                    'errors'=> ['Fetch transaction failed'],
-                ], 400);
-            }
-
-            $totalPrice = $lastOrderTransaction->amount->getTotalPrice();
-            $currencyCode = $order->getCurrency()->isoCode;
-            $amountInMinor = (int) CurrencyHelper::getAmountInMinor($currencyCode, $totalPrice);
-
-            if ($fetchedTransaction['amount'] !== $amountInMinor) {
-                $errors[] = 'Fetch transaction failed: amount mismatch';
-            }
-            if ($fetchedTransaction['currency'] !== $currencyCode) {
-                $errors[] = 'Fetch transaction failed: currency mismatch';
-            }
-
-            if ($fetchedTransaction[$amountToCheck] !== $amountInMinor) {
-                $errors[] = 'Fetch transaction failed: ' . $amountToCheck . ' mismatch';
-            }
-
-            $transactionData = [
-                'amount' => $amountInMinor,
-                'currency' => $currencyCode,
-            ];
-
-            $result['successful'] = false;
-
-            /**
-             * API Transaction call: capture/refund/void
-             */
-            $result = $apiClient->transactions()->{$actionType}($lunarTransactionId, $transactionData);
-
-            $this->logger->writeLog([$actionTypeAllCaps . ' request data: ', $transactionData]);
-
-            if (true !== $result['successful']) {
-                $this->logger->writeLog([$actionTypeAllCaps . ' error (admin): ', $result]);
-                $errors[] = $actionType . ' transaction api action failed';
-            }
-
-
-            $lastLunarOperation = end($result['trail']);
-            $transactionAmount = $lastLunarOperation['amount'];
-            $transactionAmount = CurrencyHelper::getAmountInMajor($currencyCode, $transactionAmount);
-
-            $transactionData = [
-                [
-                    'orderId' => $orderId,
-                    'transactionId' => $lunarTransactionId,
-                    'transactionType' => strtolower($actionType),
-                    'transactionCurrency' => $currencyCode,
-                    'orderAmount' => $totalPrice,
-                    'transactionAmount' => $transactionAmount,
-                    'amountInMinor' => $amountInMinor,
-                    'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
-                ],
-            ];
-
-
-            /** Change order transaction state. */
-            $this->transactionStateHandler->{$orderTransactionAction}($lastOrderTransaction->id, $context);
-
-            /** Change order state. */
-            OrderHelper::changeOrderState($orderId, strtolower($actionType), $context, $this->stateMachineRegistry);
-
-
-            /** Insert new data to database and log it. */
-            $this->lunarTransactionRepository->create($transactionData, $context);
-
-            $this->logger->writeLog(['Succes: ', $transactionData[0]]);
+            $this->transactionStateHandler->{$transactionAction}($lastOrderTransaction->id, $context);
 
         } catch (\Exception $e) {
             $errors[] = 'An exception occured. Please try again. If this persist please contact plugin developer.';
@@ -265,35 +120,14 @@ class OrderTransactionController extends AbstractController
 
         if (!empty($errors)) {
             return new JsonResponse([
-                'status'  => empty($errors),
                 'message' => 'Error',
-                'code'    => 0,
-                'errors'=> $errors ?? [],
+                'errors'=> $errors,
             ], 400);
         }
 
         return new JsonResponse([
-            'status'  =>  empty($errors),
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => $errors ?? [],
         ], 200);
-    }
-
-    /**
-     *
-     */
-    private function getApiKey($order)
-    {
-        $salesChannelId = $order->getSalesChannelId();
-
-        $transactionMode = $this->systemConfigService->get(self::CONFIG_PATH . 'transactionMode', $salesChannelId);
-
-        if ($transactionMode == 'test') {
-            return $this->systemConfigService->get(self::CONFIG_PATH . 'testModeAppKey', $salesChannelId);
-        }
-
-        return $this->systemConfigService->get(self::CONFIG_PATH . 'liveModeAppKey', $salesChannelId);
     }
 
     /**
@@ -322,18 +156,13 @@ class OrderTransactionController extends AbstractController
 
         if (!empty($errors)) {
             return new JsonResponse([
-                'status'  =>  empty($errors),
                 'message' => 'Error',
-                'code'    => 0,
                 'errors'  => $errors,
             ], 404);
         }
 
         return new JsonResponse([
-            'status'  =>  empty($errors),
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => $errors,
             'transactions' => $lunarTransactions->getElements(),
         ], 200);
     }

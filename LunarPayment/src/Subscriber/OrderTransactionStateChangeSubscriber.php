@@ -10,16 +10,16 @@ use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\Api\Exception\ExceptionFailedException;
+// use Shopware\Core\Framework\Api\Exception\ExceptionFailedException;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
 
-use Paylike\Paylike as ApiClient;
+use Lunar\Lunar as ApiClient;
 use Lunar\Payment\Helpers\OrderHelper;
 use Lunar\Payment\Helpers\PluginHelper;
-use Lunar\Payment\Helpers\CurrencyHelper;
 use Lunar\Payment\Helpers\LogHelper as Logger;
+use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 
 /**
  * Manage payment actions on order transaction state change
@@ -27,43 +27,24 @@ use Lunar\Payment\Helpers\LogHelper as Logger;
  */
 class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 {
-    public const CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
-
-    /** @var EntityRepository */
-    private $stateMachineHistory;
-
-    /** @var StateMachineRegistry */
-    private $stateMachineRegistry;
-
-    /** @var EntityRepository */
-    private $lunarTransactionRepository;
-
-    /** @var OrderHelper */
-    private $orderHelper;
-
-    /** @var SystemConfigService */
-    private $systemConfigService;
-
-    /** @var Logger */
-    private $logger;
-
-    /** @var OrderTransactionEntity */
-    private $orderTransaction;
+    private string $paymentMethodCode;
 
     public function __construct(
-        EntityRepository $stateMachineHistory,
-        StateMachineRegistry $stateMachineRegistry,
-        EntityRepository $lunarTransactionRepository,
-        OrderHelper $orderHelper,
-        SystemConfigService $systemConfigService,
-        Logger $logger
+        private EntityRepository $stateMachineHistory,
+        private StateMachineRegistry $stateMachineRegistry,
+        private EntityRepository $lunarTransactionRepository,
+        private SystemConfigService $systemConfigService,
+        private Logger $logger,
+        private OrderHelper $orderHelper,
+        private PluginHelper $pluginHelper
     ) {
         $this->stateMachineHistory = $stateMachineHistory;
         $this->stateMachineRegistry = $stateMachineRegistry;
         $this->lunarTransactionRepository = $lunarTransactionRepository;
-        $this->orderHelper = $orderHelper;
         $this->systemConfigService = $systemConfigService;
         $this->logger = $logger;
+        $this->orderHelper = $orderHelper;
+        $this->pluginHelper = $pluginHelper;
     }
 
     public static function getSubscribedEvents(): array
@@ -74,234 +55,148 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @TODO unify code with that from \Controller\OrderTransactionController.php
-     *
      * @param EntityWrittenEvent $event
      */
     public function makePaymentTransaction(EntityWrittenEvent $event)
     {
-        $context = $event->getContext();
-        $isAdminAction = false;
         $errors = [];
+        $context = $event->getContext();
 
         foreach ($event->getIds() as $transactionId) {
+
+            $transaction = $this->orderHelper->getOrderTransactionById($transactionId, $context);
+            /** @var OrderTransactionEntity|null $transaction */
+            $order = $transaction->getOrder();
+            $orderId = $order->getId();
+            $orderNumber = $order->getOrderNumber();
+            
+            if (!isset(PluginHelper::LUNAR_PAYMENT_METHODS[$transaction->paymentMethodId])) {
+                continue;
+            }
+
+            $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$transaction->paymentMethodId]['code'];
+
+            $transactionTechnicalName = $transaction->getStateMachineState()->technicalName;
+
+            switch ($transactionTechnicalName) {
+                case OrderHelper::TRANSACTION_PAID:
+                    $actionType = OrderHelper::CAPTURE;
+                    $lunarTransactionState = OrderHelper::AUTHORIZE;
+                    $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CAPTURE, $context);
+                    break;
+                case OrderHelper::TRANSACTION_REFUNDED:
+                    $actionType = OrderHelper::REFUND;
+                    $lunarTransactionState = OrderHelper::CAPTURE;
+                    $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::REFUND, $context);
+                    break;
+                case OrderHelper::TRANSACTION_CANCELLED:
+                    $actionType = OrderHelper::CANCEL;
+                    $lunarTransactionState = OrderHelper::AUTHORIZE;
+                    $transactionExists = $this->filterLunarTransaction($orderId, OrderHelper::CANCEL, $context);
+                    break;
+                default:
+                    // skip parent loop
+                    continue 2;
+            }
+
+
+            if ($transactionExists) {
+                continue;
+            }
+            
+            /** @var LunarTransaction|null $previousLunarTransaction */
+            $previousLunarTransaction = $this->filterLunarTransaction($orderId, $lunarTransactionState, $context);
+
+            if (!$previousLunarTransaction) {
+                continue;
+            }
+
+            $lunarTransactionId = $previousLunarTransaction->getTransactionId();
+
             try {
-                $transaction = $this->orderTransaction = $this->orderHelper->getTransactionById($transactionId, $context);
 
-                /**
-                 * Check payment method
-                 */
-                if (PluginHelper::PAYMENT_METHOD_UUID !== $transaction->paymentMethodId) {
-                    continue;
-                }
-
-                $transactionTechnicalName = $transaction->getStateMachineState()->technicalName;
-
-                /** Defaults to authorize. */
-                $dbTransactionPreviousState = OrderHelper::AUTHORIZE_STATUS;
-
-                /**
-                 * Check order transaction state sent
-                 * Map statuses based on shopware actions (transaction state sent)
-                 */
-                switch ($transactionTechnicalName) {
-                    case OrderHelper::TRANSACTION_PAID:
-                        $actionType = OrderHelper::CAPTURE_STATUS;
-                        $dbTransactionPreviousState = OrderHelper::AUTHORIZE_STATUS;
-                        $transactionType = OrderHelper::CAPTURE_STATUS;
-                        $amountToCheck = 'capturedAmount';
-                        break;
-                    case OrderHelper::TRANSACTION_REFUNDED:
-                        $actionType = OrderHelper::REFUND_STATUS;
-                        $dbTransactionPreviousState = OrderHelper::CAPTURE_STATUS;
-                        $transactionType = OrderHelper::REFUND_STATUS;
-                        $amountToCheck = 'refundedAmount';
-                        break;
-                    case OrderHelper::TRANSACTION_VOIDED:
-                        $actionType = OrderHelper::VOID_STATUS;
-                        $dbTransactionPreviousState = OrderHelper::AUTHORIZE_STATUS;
-                        $transactionType = OrderHelper::VOID_STATUS;
-                        $amountToCheck = 'voidedAmount';
-                        break;
-                }
-
-                /**
-                 * Check transaction registered in custom table
-                 */
-                $criteria = new Criteria();
-                $order = $transaction->getOrder();
-                $orderId = $order->getId();
-                $criteria->addFilter(new EqualsFilter('orderId', $orderId));
-                $criteria->addFilter(new EqualsFilter('transactionType',  $dbTransactionPreviousState));
-
-                $paymentTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
-
-                if (!$paymentTransaction) {
-                    continue;
-                }
-
-                /** If arrive here, then it is an admin action. */
-                $isAdminAction = true;
-
-                $paymentTransactionId = $paymentTransaction->getTransactionId();
-
-                /**
-                 * Instantiate Api Client
-                 * Fetch transaction
-                 * Check amount & currency
-                 * Proceed with transaction action
-                 */
-                $privateApiKey = $this->getApiKey($order);
-                $apiClient = new ApiClient($privateApiKey);
-                $fetchedTransaction = $apiClient->transactions()->fetch($paymentTransactionId);
+                $apiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
+                $fetchedTransaction = $apiClient->payments()->fetch($lunarTransactionId);
 
                 if (!$fetchedTransaction) {
-                    $errors[$transactionId][] = 'Fetch API transaction failed: no transaction with provided id';
+                    $errors[$orderNumber][] = 'Fetch API transaction failed: no transaction with provided id: ' . $transactionId;
                     continue;
                 }
 
                 $totalPrice = $transaction->amount->getTotalPrice();
-                $currencyCode = $transaction->getOrder()->getCurrency()->isoCode;
-                $amountValue = (int) CurrencyHelper::getAmountInMinor($currencyCode, $totalPrice);
+                $currencyCode = $this->orderHelper->getCurrencyCode($transaction->getOrder());
 
-
-                $transactionData = [
-                    'amount' => $amountValue,
-                    'currency' => $currencyCode,
-                ];
-
-                $result['successful'] = false;
-
-                /**
-                 * Make capture/refund/void only if not made previously
-                 * Prevent double transaction on
-                 */
-                if (
-                    $this->isCaptureAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['pendingAmount'] !== 0
-                ) {
-                    /**
-                     * Capture.
-                     */
-                    $result = $apiClient->transactions()->capture($paymentTransactionId, $transactionData);
-
-                } elseif (
-                    $this->isRefundAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['capturedAmount'] !== 0
-                ) {
-                    /**
-                     * Refund.
-                     */
-                    $result = $apiClient->transactions()->refund($paymentTransactionId, $transactionData);
-
-                } elseif (
-                    $this->isVoidAction()
-                    && $fetchedTransaction[$amountToCheck] === 0
-                    && $fetchedTransaction['pendingAmount'] !== 0
-                ) {
-                    /**
-                     * Void.
-                     */
-                    $result = $apiClient->transactions()->void($paymentTransactionId, $transactionData);
-
-                } else  {
-                    continue;
-                }
-
-                $this->logger->writeLog([strtoupper($transactionTechnicalName) . ' request data: ', $transactionData]);
-
-                if (true !== $result['successful']) {
-                    $this->logger->writeLog(['Error: ', $result]);
-                    $errors[$transactionId][] = 'Transaction API action was unsuccesfull';
-                    continue;
-                }
-
-                $transactionAmount = CurrencyHelper::getAmountInMajor($currencyCode, $result[$amountToCheck]);
-
-                $transactionData = [
-                    [
-                        'orderId' => $orderId,
-                        'transactionId' => $paymentTransactionId,
-                        'transactionType' => $transactionType,
-                        'transactionCurrency' => $currencyCode,
-                        'orderAmount' => $totalPrice,
-                        'transactionAmount' => $transactionAmount,
-                        'amountInMinor' => $result[$amountToCheck],
-                        'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
+                $apiTransactionData = [
+                    'amount' => [
+                        'currency' => $currencyCode,
+                        'decimal' => (string) $totalPrice,
                     ],
                 ];
 
-                /** Insert new data to database and log it. */
-                $this->lunarTransactionRepository->create($transactionData, $context);
+                $apiResult = $apiClient->payments()->{$actionType}($lunarTransactionId, $apiTransactionData);
 
-                $this->logger->writeLog(['Succes: ', $transactionData[0]]);
+                $this->logger->writeLog([strtoupper($actionType) . ' request data: ', $apiTransactionData], false);
 
-                /** Change order state. */
-                OrderHelper::changeOrderState($orderId, $actionType, $context, $this->stateMachineRegistry);
+                if ('completed' !== $apiResult["{$actionType}State"]) {
+                    $errors[$orderNumber][] = 'Transaction API action was unsuccesfull';
+                    continue;
+                }
+
+                $this->lunarTransactionRepository->create([
+                    [
+                        'orderId' => $orderId,
+                        'orderNumber' => $orderNumber,
+                        'transactionId' => $lunarTransactionId,
+                        'transactionType' => $actionType,
+                        'transactionCurrency' => $currencyCode,
+                        'orderAmount' => $totalPrice,
+                        'transactionAmount' => $totalPrice,
+                        'paymentMethod' => $this->paymentMethodCode,
+                        'createdAt' => date(Defaults::STORAGE_DATE_TIME_FORMAT),
+                    ],
+                ], $context);
+                
+                $this->logger->writeLog(['Succes:', array_merge(['orderNumber' => $orderNumber, 'action' => $actionType], $apiTransactionData)], false);
+
+                $this->orderHelper->changeOrderState($orderId, $actionType, $context);
 
             } catch (\Exception $e) {
-                $errors[] = $e->getMessage();
+                $errors[$orderNumber]['General exception'] = $e->getMessage();
+                // parse that bellow
             }
         }
 
-        if (!empty($errors) && $isAdminAction) {
-            /**
-             * Revert order transaction to previous state
-             */
-            foreach ($errors as $transactionIdKey => $errorMessages) {
-                $criteria = new Criteria();
-                $criteria->addFilter(new EqualsFilter('transactionId', $transactionIdKey));
-                $criteria->addFilter(new EqualsFilter('transactionType',  $dbTransactionPreviousState));
-
-                $paymentTransaction = $this->lunarTransactionRepository->search($criteria, $context)->first();
-
-                // $this->stateMachineHistory->
-            }
-
+        if (!empty($errors)) {            
             $this->logger->writeLog(['ADMIN ACTION ERRORS: ', json_encode($errors)]);
-            throw new ExceptionFailedException($errors);
+            // throw new ExpectationFailedException($errors); // SW 6.5
+            throw new \Exception(json_encode($errors));
         }
+    }
+
+    /**
+     * 
+     */
+    private function filterLunarTransaction($orderId, $lunarTransactionState, $context)
+    {
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('orderId', $orderId));
+        $criteria->addFilter(new EqualsFilter('transactionType',  $lunarTransactionState));
+
+        return $this->lunarTransactionRepository->search($criteria, $context)->first();
     }
 
     /**
      *
      */
-    private function getApiKey($order)
+    private function getApiKey($salesChannelId)
     {
-        $salesChannelId = $order->getSalesChannelId();
-
-        $transactionMode = $this->systemConfigService->get(self::CONFIG_PATH . 'transactionMode', $salesChannelId);
+        $transactionMode = $this->pluginHelper->getSalesChannelConfig('TransactionMode', $this->paymentMethodCode, $salesChannelId);
 
         if ($transactionMode == 'test') {
-            return $this->systemConfigService->get(self::CONFIG_PATH . 'testModeAppKey', $salesChannelId);
+            return $this->pluginHelper->getSalesChannelConfig('TestModeAppKey', $this->paymentMethodCode, $salesChannelId);
         }
 
-        return $this->systemConfigService->get(self::CONFIG_PATH . 'liveModeAppKey', $salesChannelId);
+        return $this->pluginHelper->getSalesChannelConfig('LiveModeAppKey', $this->paymentMethodCode, $salesChannelId);
     }
 
-    /**
-     *
-     */
-    private function isCaptureAction(): bool
-    {
-        return OrderHelper::TRANSACTION_PAID === $this->orderTransaction->getStateMachineState()->technicalName;
-    }
-
-    /**
-     *
-     */
-    private function isRefundAction(): bool
-    {
-        return OrderHelper::TRANSACTION_REFUNDED === $this->orderTransaction->getStateMachineState()->technicalName;
-    }
-
-    /**
-     *
-     */
-    private function isVoidAction(): bool
-    {
-        return OrderHelper::TRANSACTION_VOIDED === $this->orderTransaction->getStateMachineState()->technicalName;
-    }
 }
