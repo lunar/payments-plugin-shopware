@@ -2,6 +2,8 @@
 
 namespace Lunar\Payment\Helpers;
 
+use Lunar\Payment\Helpers\PluginHelper;
+
 /**
  *
  */
@@ -11,6 +13,12 @@ class LogHelper
     const LOGS_FILE_NAME =  '/var/log/' . PluginHelper::VENDOR_NAME . '.log';
     const LOGS_DATE_FORMAT = "Y-m-d  h:i:s";
 
+    public function __construct(
+        private PluginHelper $pluginHelper
+    ) {
+        $this->pluginHelper = $pluginHelper;
+    }
+
     /**
      *
      * @param mixed $data
@@ -18,6 +26,10 @@ class LogHelper
      */
     public function writeLog($data, $prettyPrint = true): void
     {
+        if (!$this->pluginHelper->getSalesChannelConfig('logsEnabled', '')) {
+            return;
+        }
+
         $date = date(self::LOGS_DATE_FORMAT, time());
 
         // $separator = PHP_EOL . PHP_EOL . "=========================================================================" . PHP_EOL;

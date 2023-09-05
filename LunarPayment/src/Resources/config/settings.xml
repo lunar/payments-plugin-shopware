@@ -178,6 +178,18 @@
 
     </card>
 
+    <card>
+        <title>Miscellaneous</title>
+        <name>lunar_miscellaneous</name>
+
+        <component name="sw-switch-field">
+            <name>logsEnabled</name>
+            <bordered>bordered</bordered>
+            <label>Enable the Lunar transaction log for debugging</label>
+        </component>
+
+    </card>
+
     <!-- <card>
         <title>Miscellaneous</title>
         <name>lunar_miscellaneous</name>
