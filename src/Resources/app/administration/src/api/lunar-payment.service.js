@@ -45,9 +45,9 @@ class LunarPaymentService extends ApiService {
         });
     }
 
-    voidPayment(params) {
+    cancelPayment(params) {
         return this.httpClient.post(
-            this.apiRoute + `/void`,
+            this.apiRoute + `/cancel`,
             {
                 params: params,
                 headers: this.getBasicHeaders()

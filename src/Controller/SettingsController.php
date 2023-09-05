@@ -3,16 +3,16 @@
 namespace Lunar\Payment\Controller;
 
 use Shopware\Core\Framework\Context;
-// use Shopware\Core\System\SystemConfig\SystemConfigService;
+use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-use Paylike\Paylike as ApiClient;
-use Paylike\Exception\ApiException;
-// use Lunar\Payment\Helpers\PluginHelper;
+use Lunar\Lunar as ApiClient;
+use Lunar\Exception\ApiException;
+use Lunar\Payment\Helpers\PluginHelper;
 use Lunar\Payment\Helpers\ValidationHelper;
 
 /**
@@ -20,57 +20,64 @@ use Lunar\Payment\Helpers\ValidationHelper;
  */
 class SettingsController extends AbstractController
 {
-    // private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
-
-    // /** @var SystemConfigService $systemConfigService */
-    // private $systemConfigService;
+    private const  CONFIG_PATH = PluginHelper::PLUGIN_CONFIG_PATH;
 
     private array $errors = [];
     private array $livePublicKeys = [];
     private array $testPublicKeys = [];
 
-    // public function __construct(
-    //     SystemConfigService $systemConfigService
-    // )
-    // {
-    //     $this->systemConfigService = $systemConfigService;
-    // }
+    public function __construct(
+       private SystemConfigService $systemConfigService
+    ) {
+        $this->systemConfigService = $systemConfigService;
+    }
 
     /**
+     * Temporary added - we don't validate the keys
+     * 
      * @Route("/api/lunar/validate-api-keys", name="api.lunar.validate.api.keys", methods={"POST"})
      */
     public function validateApiKeys(Request $request, Context $context): JsonResponse
     {
-        $liveAppKeyName = 'liveModeAppKey';
-        $livePublicKeyName = 'liveModePublicKey';
-        $testAppKeyName = 'testModeAppKey';
-        $testPublicKeyName = 'testModePublicKey';
-
-        $settingsKeys = $request->request->all()['keys'] ?? [];
-
-        // validate all fields regardless of transactionMode
-        $this->validateLiveAppKey($settingsKeys[$liveAppKeyName] ?? '');
-        $this->validateLivePublicKey($settingsKeys[$livePublicKeyName] ?? '');
-        $this->validateTestAppKey($settingsKeys[$testAppKeyName] ?? '');
-        $this->validateTestPublicKey($settingsKeys[$testPublicKeyName] ?? '');
-
-        if (!empty($this->errors)) {
-            return new JsonResponse([
-                'status'  => empty($this->errors),
-                'message' => 'Error',
-                'code'    => 0,
-                'errors'=> $this->errors,
-            ], 400);
-        }
-
-
         return new JsonResponse([
-            'status'  =>  empty($this->errors),
             'message' => 'Success',
-            'code'    => 0,
-            'errors'  => $this->errors,
         ], 200);
     }
+
+    /**
+     * @TODO add validate logo URL logic
+     */
+
+    // /**
+    //  * @Route("/api/lunar/validate-api-keys", name="api.lunar.validate.api.keys", methods={"POST"})
+    //  */
+    // public function validateApiKeys(Request $request, Context $context): JsonResponse
+    // {
+    //     $liveAppKeyName = 'liveModeAppKey';
+    //     $livePublicKeyName = 'liveModePublicKey';
+    //     $testAppKeyName = 'testModeAppKey';
+    //     $testPublicKeyName = 'testModePublicKey';
+
+    //     $settingsKeys = $request->request->all()['keys'] ?? [];
+
+    //     // validate all fields regardless of transactionMode
+    //     $this->validateLiveAppKey($settingsKeys[$liveAppKeyName] ?? '');
+    //     $this->validateLivePublicKey($settingsKeys[$livePublicKeyName] ?? '');
+    //     $this->validateTestAppKey($settingsKeys[$testAppKeyName] ?? '');
+    //     $this->validateTestPublicKey($settingsKeys[$testPublicKeyName] ?? '');
+
+    //     if (!empty($this->errors)) {
+    //         return new JsonResponse([
+    //             'message' => 'Error',
+    //             'errors'=> $this->errors,
+    //         ], 400);
+    //     }
+
+
+    //     return new JsonResponse([
+    //         'message' => 'Success',
+    //     ], 200);
+    // }
 
 
     /**
@@ -200,18 +207,13 @@ class SettingsController extends AbstractController
 
     //     if (!empty($errors)) {
     //         return new JsonResponse([
-    //             'status'  => empty($errors),
     //             'message' => 'Error',
-    //             'code'    => 0,
     //             'errors'  => $errors,
     //         ], 400);
     //     }
 
     //     return new JsonResponse([
-    //         'status'  =>  empty($errors),
     //         'message' => 'Success',
-    //         'code'    => 0,
-    //         'errors'  => $errors,
     //         'data'    => $settingValue,
     //     ], 200);
     // }
