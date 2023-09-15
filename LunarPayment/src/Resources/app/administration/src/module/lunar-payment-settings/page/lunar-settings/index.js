@@ -24,6 +24,10 @@ Component.register('lunar-settings', {
             isSaveSuccessful: false,
             config: {},
             configPath: 'LunarPayment.settings.',
+            showApiErrors: false,
+            apiResponseErrors: {},
+            cardLogoURLKey: 'cardLogoURL',
+            mobilePayLogoURLKey: 'mobilePayLogoURL',
         };
     },
 
@@ -47,6 +51,19 @@ Component.register('lunar-settings', {
         onConfigChange(config) {
             this.config = config;
         },
+        
+        /**
+         *
+         */
+        getConfigValue(field) {
+            const defaultConfig = this.$refs.systemConfig.actualConfigData.null;
+            const salesChannelId = this.$refs.systemConfig.currentSalesChannelId;
+
+            if (salesChannelId === null) {
+                return this.config[`${this.configPath}${field}`];
+            }
+            return this.config[`${this.configPath}${field}`] || defaultConfig[`${this.configPath}${field}`];
+        },
 
         /**
          *
@@ -54,28 +71,69 @@ Component.register('lunar-settings', {
         onSave() {
             this.isLoading = true; 
             const titleError = this.$tc('lunar-payment.settings.titleError');
+           
+            this.isSaveSuccessful = false;
+
+            let data = {
+                cardLogoURL: this.getConfigValue(this.cardLogoURLKey),
+                mobilePayLogoURL: this.getConfigValue(this.mobilePayLogoURLKey),
+                // transactionMode: this.getConfigValue(this.transactionModeConfigKey),
+                // liveModeAppKey: this.getConfigValue(this.liveAppConfigKey),
+                // liveModePublicKey: this.getConfigValue(this.livePublicConfigKey),
+                // testModeAppKey: this.getConfigValue(this.testAppConfigKey),
+                // testModePublicKey: this.getConfigValue(this.testPublicConfigKey),
+            }
 
             /**
-             * Save configuration.
+             * Validate API keys
              */
-            this.$refs.systemConfig.saveAll().then(() => {
-                this.createNotificationSuccess({
-                    title: this.$tc('lunar-payment.settings.titleSuccess'),
-                    message: this.$tc('lunar-payment.settings.generalSuccess'),
-                });
+            this.LunarPaymentSettingsService.validateSettings(data)
+                .then((response) => {
 
-                this.isSaveSuccessful = true;
-                
+                    /** Clear errors. */
+                    this.$refs.systemConfig.config.forEach((configElement) => {
+                        configElement.elements.forEach((child) => {
+                            delete child.config.error;
+                        });
+                    });
+
+                    /**
+                     * Save configuration.
+                     */
+                    this.$refs.systemConfig.saveAll().then(() => {
+                        this.createNotificationSuccess({
+                            title: this.$tc('lunar-payment.settings.titleSuccess'),
+                            message: this.$tc('lunar-payment.settings.generalSuccess'),
+                        });
+
+                        this.isSaveSuccessful = true;
+                        
+                    }).catch((errorResponse) => {
+                        console.log(errorResponse);
+
+                        this.createNotificationError({
+                            title: titleError,
+                            message: this.$tc('lunar-payment.settings.generalSaveError'),
+                        });
+                    });
+
+                    this.isLoading = false;
+
             }).catch((errorResponse) => {
-                console.log(errorResponse);
+                let apiResponseErrors = errorResponse.response.data.errors;
 
-                this.createNotificationError({
-                    title: titleError,
-                    message: this.$tc('lunar-payment.settings.generalSaveError'),
+                Object.entries(apiResponseErrors).forEach(([key, errorMessage]) => {
+                    this.createNotificationError({
+                        title: titleError,
+                        message: errorMessage,
+                    })
                 });
-            });
 
-            this.isLoading = false;
+                this.showApiErrors = true;
+                this.apiResponseErrors = apiResponseErrors;
+                this.isLoading = false;
+                this.isSaveSuccessful = false;
+            });
 
         },
 
@@ -83,9 +141,50 @@ Component.register('lunar-settings', {
          *
          */
         getBind(element, config) {
-            if (config !== this.config) {
-                this.config = config;
+            // if (config !== this.config) {
+            //     this.config = config;
+            // }
+
+            
+            if (this.showApiErrors) {
+                if (
+                    element.name === `${this.configPath}${this.cardLogoURLKey}`
+                    && this.apiResponseErrors.hasOwnProperty(this.cardLogoURLKey)
+                ) {
+                    element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.cardLogoURLInvalid')};
+                }
+                if (
+                    element.name === `${this.configPath}${this.mobilePayLogoURLKey}`
+                    && this.apiResponseErrors.hasOwnProperty(this.mobilePayLogoURLKey)
+                ) {
+                    element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.mobilePayLogoURLInvalid')};
+                }
+                // if (
+                //     element.name === `${this.configPath}${this.liveAppConfigKey}`
+                //     && this.apiResponseErrors.hasOwnProperty(this.liveAppConfigKey)
+                // ) {
+                //     element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.liveAppKeyInvalid')};
+                // }
+                // if (
+                //     element.name === `${this.configPath}${this.livePublicConfigKey}`
+                //     && this.apiResponseErrors.hasOwnProperty(this.livePublicConfigKey)
+                // ) {
+                //     element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.livePublicKeyInvalid')};
+                // }
+                // if (
+                //     element.name === `${this.configPath}${this.testAppConfigKey}`
+                //     && this.apiResponseErrors.hasOwnProperty(this.testAppConfigKey)
+                // ) {
+                //     element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.testAppKeyInvalid')};
+                // }
+                // if (
+                //     element.name === `${this.configPath}${this.testPublicConfigKey}`
+                //     && this.apiResponseErrors.hasOwnProperty(this.testPublicConfigKey)
+                // ) {
+                //     element.config.error = {code: 1, detail: this.$tc('lunar-payment.settings.testPublicKeyInvalid')};
+                // }
             }
+
 
             let originalElement;
 

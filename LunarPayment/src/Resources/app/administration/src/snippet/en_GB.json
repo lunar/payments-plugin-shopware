@@ -15,7 +15,9 @@
             "liveAppKeyInvalid": "The App key is invalid",
             "livePublicKeyInvalid": "The Public key is invalid",
             "testAppKeyInvalid": "The test App key is invalid",
-            "testPublicKeyInvalid": "The test Public key is invalid"
+            "testPublicKeyInvalid": "The test Public key is invalid",
+            "cardLogoURLInvalid": "Cards logo URL is invalid",
+            "mobilePayLogoURLInvalid": "Mobile Pay logo URL is invalid"
         },
         "messageNotBlank": "This field must not be empty.",
         "transactionId": "transaction ID",

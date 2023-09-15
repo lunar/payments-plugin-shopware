@@ -7,9 +7,9 @@ class LunarPaymentSettingsService extends ApiService {
         this.apiRoute = `${this.getApiBasePath()}`;
     }
 
-    validateApiKeys(keys) {
+    validateSettings(keys) {
         return this.httpClient.post(
-            this.apiRoute + `/validate-api-keys`,
+            this.apiRoute + `/validate-settings`,
                 {
                     keys: keys,
                     headers: this.getBasicHeaders()

@@ -93,6 +93,7 @@ Under the Shopware Lunar payment method Shop settings, you can:
 
 #
 ## Changelog
+2.2.0 - Added logo URL validation
 
 2.1.0 - Enabled cron & added enable/disable logs switch
 
