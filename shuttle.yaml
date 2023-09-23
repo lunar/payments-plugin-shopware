@@ -1,0 +1,6 @@
+plan: false
+
+vars:
+  service: payments-plugin-shopware
+  squad: juno
+  domain: webshop-payments
