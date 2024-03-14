@@ -19,20 +19,6 @@ class LunarPaymentSettingsService extends ApiService {
                 return ApiService.handleResponse(response);
             });
     }
-
-    // getSetting(key, salesChannelId = null) {
-    //     return this.httpClient.post(
-    //         this.apiRoute + `/get-setting`,
-    //             {
-    //                 key: key,
-    //                 salesChannelId: salesChannelId,
-    //                 headers: this.getBasicHeaders()
-    //             }
-    //         )
-    //         .then((response) => {
-    //             return ApiService.handleResponse(response);
-    //         });
-    // }
 }
 
 Application.addServiceProvider('LunarPaymentSettingsService', (container) => {

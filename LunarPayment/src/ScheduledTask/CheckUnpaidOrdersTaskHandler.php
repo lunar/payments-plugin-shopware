@@ -24,6 +24,9 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 #[AsMessageHandler(handles: CheckUnpaidOrdersTask::class)]
 class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 {
+    // private const TEST_MODE = false;
+    private const TEST_MODE = true;
+
     private string $paymentMethodCode;
 
 
@@ -82,7 +85,7 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
                     continue;
                 }
 
-                $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
+                $lunarApiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()), null, self::TEST_MODE);
                 $fetchedTransaction = $lunarApiClient->payments()->fetch($paymentIntentId);
 
                 if (!$fetchedTransaction) {
@@ -161,6 +164,6 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
             return $this->pluginHelper->getSalesChannelConfig('TestModeAppKey', $this->paymentMethodCode, $salesChannelId);
         }
 
-        return $this->pluginHelper->getSalesChannelConfig('LiveModeAppKey', $this->paymentMethodCode, $salesChannelId);
+        return $this->pluginHelper->getSalesChannelConfig('AppKey', $this->paymentMethodCode, $salesChannelId);
     }
 }
