@@ -27,6 +27,7 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 {
     private string $paymentMethodCode;
+    private bool $testMode;
 
     public function __construct(
         private EntityRepository $stateMachineHistory,
@@ -44,6 +45,8 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
         $this->logger = $logger;
         $this->orderHelper = $orderHelper;
         $this->pluginHelper = $pluginHelper;
+
+        $this->testMode = !! $_COOKIE['lunar_testmode'];
     }
 
     public static function getSubscribedEvents(): array
@@ -114,7 +117,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
 
             try {
 
-                $apiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()));
+                $apiClient = new ApiClient($this->getApiKey($order->getSalesChannelId()), null, $this->testMode);
                 $fetchedTransaction = $apiClient->payments()->fetch($paymentIntentId);
 
                 if (!$fetchedTransaction) {
@@ -193,13 +196,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
      */
     private function getApiKey($salesChannelId)
     {
-        $transactionMode = $this->pluginHelper->getSalesChannelConfig('TransactionMode', $this->paymentMethodCode, $salesChannelId);
-
-        if ($transactionMode == 'test') {
-            return $this->pluginHelper->getSalesChannelConfig('TestModeAppKey', $this->paymentMethodCode, $salesChannelId);
-        }
-
-        return $this->pluginHelper->getSalesChannelConfig('LiveModeAppKey', $this->paymentMethodCode, $salesChannelId);
+        return $this->pluginHelper->getSalesChannelConfig('AppKey', $this->paymentMethodCode, $salesChannelId);
     }
 
 }

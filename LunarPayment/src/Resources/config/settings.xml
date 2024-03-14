@@ -7,37 +7,13 @@
         <title>Card - Configuration</title>
         <name>lunar_card_configuration</name>
 
-        <input-field type="single-select">
-            <name>cardTransactionMode</name>
-            <label>Transaction Mode</label>
-            <options>
-                <option>
-                    <id>live</id>
-                    <name>Live mode</name>
-                </option>
-                <option>
-                    <id>test</id>
-                    <name>Test mode</name>
-                </option>
-            </options>
-        </input-field>
-
         <input-field>
-            <name>cardTestModeAppKey</name>
-            <label>Test mode App Key</label>
-        </input-field>
-        <input-field>
-            <name>cardTestModePublicKey</name>
-            <label>Test mode Public Key</label>
-        </input-field>
-
-        <input-field>
-            <name>cardLiveModeAppKey</name>
+            <name>cardAppKey</name>
             <label>App Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
         <input-field>
-            <name>cardLiveModePublicKey</name>
+            <name>cardPublicKey</name>
             <label>Public Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
@@ -98,37 +74,13 @@
         <title>Mobilepay - Configuration</title>
         <name>lunar_mobilePay_configuration</name>
 
-        <input-field type="single-select">
-            <name>mobilePayTransactionMode</name>
-            <label>Transaction Mode</label>
-            <options>
-                <option>
-                    <id>live</id>
-                    <name>Live mode</name>
-                </option>
-                <option>
-                    <id>test</id>
-                    <name>Test mode</name>
-                </option>
-            </options>
-        </input-field>
-
         <input-field>
-            <name>mobilePayTestModeAppKey</name>
-            <label>Test mode App Key</label>
-        </input-field>
-        <input-field>
-            <name>mobilePayTestModePublicKey</name>
-            <label>Test mode Public Key</label>
-        </input-field>
-
-        <input-field>
-            <name>mobilePayLiveModeAppKey</name>
+            <name>mobilePayAppKey</name>
             <label>App Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>
         <input-field>
-            <name>mobilePayLiveModePublicKey</name>
+            <name>mobilePayPublicKey</name>
             <label>Public Key</label>
             <helpText>Get it from your Lunar dashboard</helpText>
         </input-field>

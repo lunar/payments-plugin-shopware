@@ -198,7 +198,6 @@ class LunarPayment extends Plugin
             ? $config->set(PluginHelper::PLUGIN_CONFIG_PATH . 'cardAcceptedCards', PluginHelper::ACCEPTED_CARDS)
             : null;
 
-        $config->set($configPath . 'TransactionMode', PluginHelper::TRANSACTION_MODE);
         $config->set($configPath . 'CaptureMode', PluginHelper::CAPTURE_MODE);
         $config->set($configPath . 'ShopTitle', $config->get('core.basicInformation.shopName'));
 

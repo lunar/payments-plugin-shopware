@@ -24,8 +24,8 @@ let moduleConfig = {
     name: 'LunarPayment',
     title: 'Lunar Payment',
     description: 'Lunar Payment plugin',
-    version: '1.0.0',
-    targetVersion: '1.0.0',
+    version: '1.1.0',
+    targetVersion: '1.1.0',
     icon: 'regular-cog',
 
     snippets: {

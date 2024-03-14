@@ -90,17 +90,11 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         $paymentMethodId = $this->orderTransaction->getPaymentMethodId();     
         $this->paymentMethodCode = PluginHelper::LUNAR_PAYMENT_METHODS[$paymentMethodId]['code'];
         
+        $this->publicKey = $this->getSetting('PublicKey');
         $this->isInstantMode = 'instant' === $this->getSetting('CaptureMode');
-        $this->testMode = 'test' == $this->getSetting('TransactionMode');
-        if ($this->testMode) {
-            $this->publicKey =  $this->getSetting('TestModePublicKey');
-            $privateKey =  $this->getSetting('TestModeAppKey');
-        } else {
-            $this->publicKey = $this->getSetting('LiveModePublicKey');
-            $privateKey = $this->getSetting('LiveModeAppKey');
-        }
+        $this->testMode = !! $_COOKIE['lunar_testmode'];
 
-        $this->lunarApiClient = new ApiClient($privateKey);
+        $this->lunarApiClient = new ApiClient($this->getSetting('AppKey'), null, $this->testMode);
     }
 
     /**
