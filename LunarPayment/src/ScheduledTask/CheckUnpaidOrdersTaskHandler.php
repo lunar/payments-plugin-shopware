@@ -158,12 +158,6 @@ class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
      */
     private function getApiKey($salesChannelId)
     {
-        $transactionMode = $this->pluginHelper->getSalesChannelConfig('TransactionMode', $this->paymentMethodCode, $salesChannelId);
-
-        if ($transactionMode == 'test') {
-            return $this->pluginHelper->getSalesChannelConfig('TestModeAppKey', $this->paymentMethodCode, $salesChannelId);
-        }
-
         return $this->pluginHelper->getSalesChannelConfig('AppKey', $this->paymentMethodCode, $salesChannelId);
     }
 }

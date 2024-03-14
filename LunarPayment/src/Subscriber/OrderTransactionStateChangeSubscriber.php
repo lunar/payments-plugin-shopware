@@ -46,7 +46,7 @@ class OrderTransactionStateChangeSubscriber implements EventSubscriberInterface
         $this->orderHelper = $orderHelper;
         $this->pluginHelper = $pluginHelper;
 
-        $this->testMode = true;
+        $this->testMode = !! $_COOKIE['lunar_testmode'];
     }
 
     public static function getSubscribedEvents(): array

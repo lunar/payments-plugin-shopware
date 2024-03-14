@@ -92,7 +92,7 @@ class LunarHostedCheckoutHandler implements AsynchronousPaymentHandlerInterface
         
         $this->publicKey = $this->getSetting('PublicKey');
         $this->isInstantMode = 'instant' === $this->getSetting('CaptureMode');
-        $this->testMode = true;
+        $this->testMode = !! $_COOKIE['lunar_testmode'];
 
         $this->lunarApiClient = new ApiClient($this->getSetting('AppKey'), null, $this->testMode);
     }
