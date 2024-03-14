@@ -1,7 +1,7 @@
 {
     "name": "lunar/plugin-shopware-6",
     "description": "Lunar Online Payments for Shopware",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "type": "shopware-platform-plugin",
     "license": "MIT",
     "authors": [
