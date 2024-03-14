@@ -24,8 +24,7 @@ use Lunar\Payment\Entity\LunarTransaction\LunarTransaction;
 #[AsMessageHandler(handles: CheckUnpaidOrdersTask::class)]
 class CheckUnpaidOrdersTaskHandler extends AbstractCronHandler
 {
-    // private const TEST_MODE = false;
-    private const TEST_MODE = true;
+    private const TEST_MODE = false;
 
     private string $paymentMethodCode;
 
